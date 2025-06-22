@@ -90,14 +90,6 @@ function App() {
               <Route path="/premium" element={<PremiumPage />} />
             </Route>
           </Route>
-          {/* Protected routes with MainLayout */}
-          {/* <Route path="/actions" element={<TransactionView />} />
-              <Route element={<AccessWrapper />}>
-                <Route path="/debt/add" element={<AddDebt />} />
-                <Route path="/debt/edit/:id" element={<EditDebt />} />
-              </Route>
-              <Route path="/reports" element={<StatisticsDashboard />} /> */}
-
           {/* Catch all other routes and redirect */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

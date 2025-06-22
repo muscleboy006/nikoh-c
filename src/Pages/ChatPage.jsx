@@ -272,10 +272,6 @@ const ChatPage = () => {
       {/* Xabar kiritish */}
       <div className="p-4 bg-white border-t">
         <div className="flex items-end space-x-3">
-          <Button variant="ghost" size="sm" className="p-2 flex-shrink-0">
-            <Paperclip className="h-5 w-5 text-gray-500" />
-          </Button>
-
           <div className="flex-1 relative">
             <Input
               ref={inputRef}
@@ -286,13 +282,6 @@ const ChatPage = () => {
               disabled={!isConnected}
               className="pr-12 py-3 rounded-full border-gray-200 focus:border-blue-500 focus:ring-blue-500"
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2"
-            >
-              <Smile className="h-4 w-4 text-gray-500" />
-            </Button>
           </div>
 
           <Button
