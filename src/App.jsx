@@ -9,10 +9,11 @@ import Dashboard from './Pages/Dashboard';
 import MainLayout from './Pages/Tabs';
 import ProfilePage from './Utils/ProfilePage';
 import { ProtectedRoute } from './Utils/AuthRoutes';
-import Chat from './Pages/Chat';
+import Chat from './Pages/ChatList';
 import PremiumPage from './Utils/PremiumPage';
 import Saved from './Pages/Saved';
 import ViewProfile from './Pages/ViewProfile';
+import ChatPage from './Pages/ChatPage';
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -79,11 +80,12 @@ function App() {
           } />
 
           <Route element={<MainLayout />}>
+            <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/anketa/:id" element={<ViewProfile />} />
-            <Route element={<ProtectedRoute />}>
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/chat" element={<Chat />} />
+              <Route path="/chat/:chatId" element={<ChatPage />} />
               <Route path="/saved" element={<Saved />} />
               <Route path="/premium" element={<PremiumPage />} />
             </Route>

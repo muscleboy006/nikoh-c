@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { useAccessStatus } from './useAccessStatus';
 import axios from 'axios';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Upload } from 'lucide-react';
 
 // Импорт компонентов shadcn/ui
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,8 +51,60 @@ const ProfilePage = () => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
-  const [expandedSections, setExpandedSections] = useState({});
+  const [expandedSections, setExpandedSections] = useState({Profil: true,});
+  const [previewImage, setPreviewImage] = useState(null);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
+
+    // Обработчик загрузки изображения
+    const handleImageUpload = async (file) => {
+      if (!file) return;
+      
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('photo', file);
+  
+      try {
+        setProfileLoading(true);
+        const response = await axios.post(
+          `${api}/tg/profile-photo/${currentUser._id}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+        
+        setUserProfile(response.data);
+        setFormData(response.data);
+        setIsEditing(false)
+        fetchUserProfile()
+        setPreviewImage(URL.createObjectURL(file));
+        toast.success('Rasm muvaffaqiyatli yuklandi!');
+      } catch (error) {
+        console.error('Rasm yuklashda xatolik:', error);
+        toast.error('Rasm yuklashda xatolik yuz berdi.');
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+  
+    // Обработчик изменения файла
+    const handleFileChange = (e) => {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        handleImageUpload(file);
+      }
+    };
+  
+    // Инициализация предпросмотра
+    useEffect(() => {
+      if (userProfile?.photo_url) {
+        setPreviewImage(userProfile.photo_url);
+      }
+    }, [userProfile]);
 
   // Lists for cities and nationalities in Uzbekistan
   const cities = [
@@ -175,8 +227,6 @@ const ProfilePage = () => {
   const getInitials = () => {
     if (userProfile.first_name && userProfile.last_name) {
       return `${userProfile.first_name[0]}${userProfile.last_name[0]}`.toUpperCase();
-    } else if (userProfile.username) {
-      return userProfile.username[0].toUpperCase();
     }
     return 'U';
   };
@@ -263,7 +313,6 @@ const ProfilePage = () => {
         { label: 'Daraja', value: userProfile.education?.degree },
         { label: 'Yo\'nalish', value: userProfile.education?.field },
         { label: 'Kasb', value: userProfile.education?.profession },
-        { label: 'Daromad darajasi', value: userProfile.education?.incomeLevel },
       ],
     },
   ];
@@ -277,7 +326,7 @@ const ProfilePage = () => {
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2 border-blue-500 shadow-sm">
               {userProfile.photo_url ? (
-                <AvatarImage src={userProfile.photo_url} alt="Аватар" />
+                <AvatarImage src={api + userProfile.photo_url} alt="Аватар" />
               ) : null}
               <AvatarFallback className="text-lg font-bold bg-blue-100 text-blue-700">
                 {getInitials()}
@@ -287,9 +336,6 @@ const ProfilePage = () => {
               <h3 className="text-lg font-semibold text-gray-900">
                 {userProfile.first_name} {userProfile.last_name}
               </h3>
-              {userProfile.username && (
-                <p className="text-gray-600 text-sm">@{userProfile.username}</p>
-              )}
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-gray-500 text-sm">
                   ID: {userProfile.telegramId}
@@ -354,11 +400,7 @@ const ProfilePage = () => {
         <CardContent className="space-y-4">
           {renderField('Ism', userProfile.first_name)}
           {renderField('Familiya', userProfile.last_name)}
-          {renderField('Username', userProfile.username)}
-          {renderField('Telegram ID', userProfile.telegramId)}
           {renderField('Ro\'yxatdan o\'tgan sana', userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : '—')}
-          {renderField('Oxirgi kirish', userProfile.lastLogin ? new Date(userProfile.lastLogin).toLocaleString() : '—')}
-          {renderField('Tasdiqlangan', userProfile.isVerified ? 'Ha' : 'Yo\'q')}
 
           {sections.map((section) => (
             <div key={section.title} className="border-t border-gray-200 pt-4 first:border-t-0">
@@ -392,13 +434,43 @@ const ProfilePage = () => {
               Ma'lumotlarni o'zgartirish uchun quyidagi bo'limlarni to'ldiring va saqlang.
             </DialogDescription>
           </DialogHeader>
+          {/* Добавлен блок для загрузки изображения */}
+          <div className="flex flex-col items-center mb-6">
+            <Avatar className="h-32 w-32 border-2 border-blue-500 mb-4">
+              {previewImage ? (
+                <AvatarImage src={api + previewImage} alt="Profil rasmi" />
+              ) : (
+                <AvatarFallback className="text-2xl font-bold bg-blue-100 text-blue-700">
+                  {getInitials(formData)}
+                </AvatarFallback>
+              )}
+            </Avatar>
+            
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current.click()}
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              {previewImage ? "Rasmni almashtirish" : "Rasm yuklash"}
+            </Button>
+            <p className="text-xs text-gray-500 mt-2">JPG, PNG yoki WEBP formatlari qabul qilinadi</p>
+          </div>
+
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsList className="grid w-full grid-cols-4 mb-4">
               <TabsTrigger value="basic">Asosiy</TabsTrigger>
               <TabsTrigger value="profile">Profil</TabsTrigger>
               <TabsTrigger value="religious">Diniy</TabsTrigger>
               <TabsTrigger value="education">Ta'lim</TabsTrigger>
-              <TabsTrigger value="marriage">Nikoh</TabsTrigger>
             </TabsList>
             <TabsContent value="basic" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -416,22 +488,6 @@ const ProfilePage = () => {
                     id="last_name"
                     value={formData.last_name || ''}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="username">Username tg</Label>
-                  <Input
-                    id="username"
-                    value={formData.username || ''}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="username_ins">Username inst</Label>
-                  <Input
-                    id="username_ins"
-                    value={formData.username_ins || ''}
-                    onChange={(e) => setFormData({ ...formData, username_ins: e.target.value })}
                   />
                 </div>
               </div>

@@ -49,19 +49,15 @@ const ViewProfile = () => {
     return labels[gender] || '—';
   };
 
-  const getMaritalStatusLabel = (status) => {
-    const labels = {
-      single: 'Yolg\'iz',
-      divorced: 'Ajrashgan',
-      widowed: 'Beva',
-    };
-    return labels[status] || '—';
-  };
-
   const fetchUserProfile = async () => {
+    const token = localStorage.getItem('token');
     try {
       setProfileLoading(true);
-      const response = await axios.get(`${api}/tg/${id}`);
+      const response = await axios.get(`${api}/tg/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       setUserProfile(response.data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -207,14 +203,17 @@ const ViewProfile = () => {
         <div className="space-y-3">
           {renderField('Jins', getGenderLabel(userProfile.profile?.gender))}
           {renderField(
-            'Yosh', 
+            'Tug‘ilgan sana',
             userProfile.profile?.birthDate 
-              ? `${getAge(userProfile.profile.birthDate)} yosh`
+              ? (() => {
+                  const d = new Date(userProfile.profile.birthDate);
+                  return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth()+1).toString().padStart(2, '0')}.${d.getFullYear()}`;
+                })()
               : '—'
           )}
           {renderField('Viloyat', userProfile.profile?.city, <MapPin className="h-4 w-4" />)}
           {renderField('Millat', userProfile.profile?.nationality, <Globe className="h-4 w-4" />)}
-          {renderField('Oilaviy holat', getMaritalStatusLabel(userProfile.profile?.maritalStatus))}
+          {renderField('Oilaviy holat', userProfile.profile?.maritalStatus)}
           {renderBooleanField('Farzandlari bormi', userProfile.profile?.hasChildren)}
           {renderBooleanField('Ko\'chib o\'tishga tayyormi', userProfile.profile?.readyForRelocation)}
         </div>
@@ -230,7 +229,6 @@ const ViewProfile = () => {
           {userProfile.profile?.gender === 'Ayol' && 
             renderBooleanField('Hijob', userProfile.religiousPractice?.hijab)
           }
-          {renderBooleanField('Qoshxotinlik qabul qilish', userProfile.religiousPractice?.acceptPolygamy)}
         </div>
       ),
     },
@@ -243,7 +241,6 @@ const ViewProfile = () => {
           {renderField('Ta\'lim darajasi', userProfile.education?.degree)}
           {renderField('Yo\'nalish', userProfile.education?.field)}
           {renderField('Kasb', userProfile.education?.profession)}
-          {renderField('Daromad darajasi', userProfile.education?.incomeLevel)}
         </div>
       ),
     },
@@ -256,30 +253,7 @@ const ViewProfile = () => {
           {renderBooleanField('Ota-onalar roziligi', userProfile.marriageGoals?.parentApproval)}
         </div>
       ),
-    },
-    {
-      key: 'photos',
-      title: 'Rasmlar',
-      icon: <Camera className="h-5 w-5" />,
-      content: userProfile.photos?.length > 0 ? (
-        <div className="grid grid-cols-3 gap-3">
-          {userProfile.photos.map((photo, index) => (
-            <div key={index} className="aspect-square rounded-lg overflow-hidden shadow-sm">
-              <img
-                src={photo.url}
-                alt={`Rasm ${index + 1}`}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <Camera className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Rasmlar yuklanmagan</p>
-        </div>
-      ),
-    },
+    }
   ];
 
   return (
@@ -291,7 +265,7 @@ const ViewProfile = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(-1)}
             className="text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -301,13 +275,13 @@ const ViewProfile = () => {
         </div>
 
         <Card className="mb-6 overflow-hidden shadow-lg">
-          <div className="h-32 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"></div>
+          {/* <div className="h-32 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"></div> */}
           
           <CardContent className="relative pt-0">
-            <div className="flex flex-col items-center -mt-16 pb-6">
-              <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
+            <div className="flex flex-col items-center">
+              <Avatar className="h-62 w-62 border-4 border-white shadow-lg">
                 {userProfile.photo_url ? (
-                  <AvatarImage src={userProfile.photo_url} alt="Profile" />
+                  <AvatarImage src={api+userProfile.photo_url} alt="Profile" />
                 ) : (
                   <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-blue-400 to-purple-500 text-white">
                     {getInitials()}
@@ -319,30 +293,6 @@ const ViewProfile = () => {
                 <h2 className="text-2xl font-bold text-gray-900">
                   {userProfile.first_name} {userProfile.last_name}
                 </h2>
-                <div className="flex flex-col items-center gap-2 mt-1">
-                  {userProfile.username && (
-                    <a
-                      href={`https://t.me/${userProfile.username.replace(/^@/, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-blue-600 hover:underline"
-                    >
-                      <Send className="h-4 w-4" />
-                      @{userProfile.username.replace(/^@/, '')}
-                    </a>
-                  )}
-                  {userProfile.username_ins && (
-                    <a
-                      href={`https://www.instagram.com/${userProfile.username_ins.replace(/^#/, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-pink-500 hover:underline"
-                    >
-                      <Instagram className="h-4 w-4" />
-                      {userProfile.username_ins.replace(/^#/, '')}
-                    </a>
-                  )}
-                </div>
                 <div className="flex items-center justify-center gap-4 mt-3">
                   <Badge variant="outline" className="text-xs px-3 py-1">
                     <Shield className="h-3 w-3 mr-1" />
@@ -358,17 +308,11 @@ const ViewProfile = () => {
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-4 w-full">
+              <div className="mt-6 grid grid-cols-1 gap-4 w-full">
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500">Ro'yxatdan o'tgan</p>
                   <p className="text-sm font-medium text-gray-900">
                     {userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : '—'}
-                  </p>
-                </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Oxirgi kirish</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {userProfile.lastLogin ? new Date(userProfile.lastLogin).toLocaleDateString() : '—'}
                   </p>
                 </div>
               </div>

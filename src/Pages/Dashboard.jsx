@@ -9,28 +9,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Toaster, toast } from 'sonner';
-import { 
-  Filter, 
-  RefreshCw, 
-  Search, 
-  Users, 
-  MapPin, 
-  Calendar, 
+import {
+  Filter,
+  RefreshCw,
+  Search,
+  Users,
+  MapPin,
+  Calendar,
   Heart,
   ChevronDown,
   X,
   Sparkles,
-  User
+  User,
+  Moon,
+  MessageCircle
 } from 'lucide-react';
 import api from '../Utils/api';
+import { useAccessStatus } from '@/Utils/useAccessStatus';
 
 const Dashboard = () => {
   const { currentUser, loading } = useAuth();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalProfiles, setTotalProfiles] = useState(0);
@@ -43,6 +46,14 @@ const Dashboard = () => {
     hijab: false,
   });
   const [showHijabFilter, setShowHijabFilter] = useState(false);
+  const [savedAnketas, setSavedAnketas] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const { 
+    isPremium, 
+    profileComplete, 
+    chatLimitReached 
+  } = useAccessStatus();
 
   const cities = [
     'Toshkent', 'Toshkent vil', 'Sirdaryo', 'Jizzax', 'Samarqand', 'Andijon',
@@ -55,41 +66,134 @@ const Dashboard = () => {
   const birthYears = Array.from({ length: currentYear - 1960 + 1 }, (_, i) => currentYear - i);
 
   useEffect(() => {
-    if (!loading) {
-      fetchProfiles();
+    if (!loading && currentUser) {
+      setCurrentPage(1);
+      fetchProfiles(1, true);
+      fetchSavedAnketas();
     }
-  }, [loading, filters]);
+  }, [loading, filters, currentUser]);
 
-  const fetchProfiles = async () => {
+  const fetchSavedAnketas = async () => {
     try {
-      setIsLoading(true);
+      if (!currentUser?._id) return;
+  
       const token = localStorage.getItem('token');
-      const config = {
-        params: {
-          gender: filters.gender,
-          birthYearFrom: filters.birthYearFrom,
-          birthYearTo: filters.birthYearTo,
-          city: filters.city,
-          maritalStatus: filters.maritalStatus,
-          acceptPolygamy: filters.acceptPolygamy ? 'true' : undefined,
-          hijab: filters.hijab && filters.gender === 'Ayol' ? 'true' : undefined,
-        },
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      const response = await axios.get(`${api}/tg/saved-ids/${currentUser._id}`, config);
+      setSavedAnketas(response.data || []);
+    } catch (error) {
+      console.error('Ошибка при загрузке сохранённых анкет:', error);
+      setSavedAnketas([]);
+    }
+  };
+
+  const PAGE_LIMIT = 50;
+
+  const loadMore = () => {
+    if (hasMore && !isLoadingMore) {
+      const nextPage = currentPage + 1;
+      setIsLoadingMore(true);
+      fetchProfiles(nextPage);
+      setCurrentPage(nextPage);
+    }
+  };
+  
+  const fetchProfiles = async (page = 1) => {
+    try {
+      if (page === 1) setIsLoading(true);
+  
+      const token = localStorage.getItem('token');
+      const params = {
+        gender: filters.gender || undefined,
+        birthYearFrom: filters.birthYearFrom || undefined,
+        birthYearTo: filters.birthYearTo || undefined,
+        city: filters.city || undefined,
+        maritalStatus: filters.maritalStatus || undefined,
+        hijab: (filters.hijab && filters.gender === 'Ayol') ? 'true' : undefined,
+        page,
+        limit: PAGE_LIMIT
       };
-      if (token) {
-        config.headers = { Authorization: `Bearer ${token}` };
-      }
+  
+      Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+  
+      const config = { params };
+      if (token) config.headers = { Authorization: `Bearer ${token}` };
+  
       const response = await axios.get(`${api}/tg/search`, config);
-      setProfiles(response.data);
-      setTotalProfiles(response.data.length);
+      const data = response.data.data || response.data;
+  
+      if (page === 1) {
+        setProfiles(Array.isArray(data) ? data : []);
+      } else {
+        setProfiles(prev => {
+          const map = new Map(prev.map(p => [p._id, p]));
+          (Array.isArray(data) ? data : []).forEach(item => map.set(item._id, item));
+          return Array.from(map.values());
+        });
+      }
+  
+      const receivedCount = Array.isArray(data) ? data.length : 0;
+      setHasMore(receivedCount === PAGE_LIMIT);
+      setTotalProfiles(response.data.total || (page === 1 ? receivedCount : totalProfiles + receivedCount));
     } catch (error) {
       console.error('Error fetching profiles:', error);
       toast.error('Profillarni yuklashda xatolik yuz berdi.');
-      setProfiles([]);
-      setTotalProfiles(0);
+      if (page === 1) setProfiles([]);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
+  
+
+  const startChat = async (userBId) => {
+    try {
+
+      if (!profileComplete) {
+        toast.error("Profil to'liq to'ldirilmagan.");
+        return;
+      }
+    
+      if (chatLimitReached && !isPremium) {
+        toast.error("Chatlar limiti tugagan. Premium kerak.");
+        return;
+      }
+
+      if (!currentUser?._id) {
+        toast.error('Avval tizimga kiring.');
+        return;
+      }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Avtorizatsiya token topilmadi.');
+        return;
+      }
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await axios.post(`${api}/chat`, {
+        userA: currentUser._id,
+        userB: userBId
+      }, config);
+      console.log(response);
+      const chatId = response.data._id
+      if (response.data && chatId) {
+        navigate(`/chat/${chatId}`);
+      } else {
+        toast.error('Chat ID olinmadi.');
+      }
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      if (error.response?.status === 401) {
+        toast.error('Avtorizatsiya muammosi. Qayta kiring.');
+      } else if (error.response?.status === 403) {
+        toast.error('Chatni boshlash uchun ruxsat yo\'q.');
+      } else {
+        toast.error('Chatni boshlashda xatolik yuz berdi.');
+      }
+    }
+  };
+
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => {
@@ -111,7 +215,6 @@ const Dashboard = () => {
       birthYearTo: '',
       city: '',
       maritalStatus: '',
-      acceptPolygamy: false,
       hijab: false,
     });
     setShowHijabFilter(false);
@@ -119,7 +222,7 @@ const Dashboard = () => {
   };
 
   const getActiveFiltersCount = () => {
-    return Object.values(filters).filter(value => 
+    return Object.values(filters).filter(value =>
       value !== '' && value !== false
     ).length;
   };
@@ -142,20 +245,15 @@ const Dashboard = () => {
     return gender === 'Erkak' ? '👨' : gender === 'Ayol' ? '👩' : '👤';
   };
 
-  const getMaritalStatusLabel = (status) => {
-    const labels = {
-      single: 'Yolg\'iz',
-      divorced: 'Ajrashgan',
-      widowed: 'Beva',
-    };
-    return labels[status] || '—';
-  };
-
   const calculateAge = (birthDate) => {
     if (!birthDate) return '—';
-    const ageDifMs = Date.now() - new Date(birthDate).getTime();
-    const ageDate = new Date(ageDifMs);
-    return Math.abs(ageDate.getUTCFullYear() - 1970);
+    try {
+      const ageDifMs = Date.now() - new Date(birthDate).getTime();
+      const ageDate = new Date(ageDifMs);
+      return Math.abs(ageDate.getUTCFullYear() - 1970);
+    } catch (error) {
+      return '—';
+    }
   };
 
   const filteredProfiles = profiles.filter(profile => {
@@ -168,10 +266,54 @@ const Dashboard = () => {
     );
   });
 
+  const toggleSave = async (anketaId, event) => {
+    event.stopPropagation();
+    
+    try {
+      if (!currentUser?._id) {
+        toast.error('Avval tizimga kiring.');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Avtorizatsiya token topilmadi.');
+        return;
+      }
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      if (savedAnketas.includes(anketaId)) {
+        await axios.post(`${api}/tg/unsave`, { userId: currentUser._id, anketaId }, config);
+        setSavedAnketas(prev => prev.filter(id => id !== anketaId));
+        toast.success('Saqlangan anketalardan olib tashlandi');
+      } else {
+        await axios.post(`${api}/tg/save`, { userId: currentUser._id, anketaId }, config);
+        setSavedAnketas(prev => [...prev, anketaId]);
+        toast.success('Anketalar saqlanadigan bo\'limga qo\'shildi');
+      }
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      toast.error("Xatolik yuz berdi");
+    }
+  };
+
+  // Показываем загрузку только если данные еще не загружены
+  if (loading || (!currentUser && !loading)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Yuklanmoqda...</p>
+        </div>
+      </div>
+    );
+  }  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Toaster position="top-right" richColors />
-      
+
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -186,10 +328,10 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+              {/* <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                 <Users className="w-3 h-3 mr-1" />
                 {totalProfiles} profil
-              </Badge>
+              </Badge> */}
               <Button
                 variant="outline"
                 size="sm"
@@ -401,7 +543,7 @@ const Dashboard = () => {
               {filteredProfiles.map((profile) => (
                 <Card
                   key={profile._id}
-                  className="group shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border-0 bg-white/80 backdrop-blur-sm hover:bg-white/90 hover:scale-[1.02]"
+                  className="group shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border-0 bg-white/80 backdrop-blur-sm hover:bg-white/90 hover:scale-[1.02] relative"
                   onClick={() => navigate(`/anketa/${profile._id}`)}
                 >
                   <CardContent className="p-6">
@@ -409,7 +551,7 @@ const Dashboard = () => {
                       <div className="relative">
                         <Avatar className="h-16 w-16 border-3 border-gradient-to-r from-blue-500 to-purple-600 shadow-lg">
                           {profile.photo_url ? (
-                            <AvatarImage src={profile.photo_url} alt="Аватар" />
+                            <AvatarImage src={api+profile.photo_url} alt="Аватар" />
                           ) : (
                             <AvatarFallback className="text-lg font-bold bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700">
                               {getInitials(profile.first_name, profile.last_name, profile.username)}
@@ -430,33 +572,56 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <MapPin className="w-4 h-4 text-gray-400" />
                         <span>{profile.profile?.city || 'Shahar ko\'rsatilmagan'}</span>
                       </div>
-                      
+
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span>{getMaritalStatusLabel(profile.profile?.maritalStatus)}</span>
+                        <Moon className="w-4 h-4 text-gray-400" />
+                        <span>Nomoz: {profile.religiousPractice?.prayer || 'Ko\'rsatilmagan'}</span>
                       </div>
 
                       <div className="flex flex-wrap gap-2 mt-3">
                         <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
                           {getGenderLabel(profile.profile?.gender)}
                         </Badge>
-                        {profile.profile?.acceptPolygamy && (
-                          <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
-                            Qoshxotinlik
-                          </Badge>
-                        )}
                         {profile.profile?.hijab && (
                           <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
                             Hijob
                           </Badge>
                         )}
                       </div>
+                    </div>
+
+                    <div className="absolute top-3 right-3 flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => toggleSave(profile._id, e)}
+                        className="hover:bg-white/50"
+                      >
+                        {savedAnketas.includes(profile._id) ? (
+                          <Heart className="w-5 h-5 text-red-500 fill-red-500 transition-all duration-200" />
+                        ) : (
+                          <Heart className="w-5 h-5 text-gray-400 transition-all duration-200" />
+                        )}
+                      </Button>
+                      {currentUser?._id?.toString() !== profile?._id?.toString() ? (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation(); // Важно: предотвращаем всплытие события
+                            startChat(profile?._id?.toString());
+                          }}
+                          className="hover:bg-white/50"
+                        >
+                          <MessageCircle className="w-5 h-5 text-gray-400" />
+                        </Button>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>
@@ -466,14 +631,23 @@ const Dashboard = () => {
         </div>
 
         {/* Load More Button */}
-        {!isLoading && filteredProfiles.length > 0 && (
+        {!isLoading && hasMore && (
           <div className="text-center mt-8">
             <Button
+              onClick={loadMore}
               variant="outline"
               size="lg"
+              disabled={isLoadingMore}
               className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white/90"
             >
-              Ko'proq yuklash
+              {isLoadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  Yuklanmoqda...
+                </>
+              ) : (
+                'Ko\'proq yuklash'
+              )}
             </Button>
           </div>
         )}

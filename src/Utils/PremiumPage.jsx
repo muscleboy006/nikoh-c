@@ -6,7 +6,7 @@ import { ArrowLeft, Check, Star, Crown, Zap, Shield, Calendar, Sparkles } from '
 
 const PremiumPage = () => {
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState('1month');
+  const [selectedPlan, setSelectedPlan] = useState('1months');
 
   const handlePurchase = (planType, price) => {
     const message = `Assalomu alaikum! Men ${planType} lik tarifni sotib olmoqchiman. Narxi: ${price} so'm`;
@@ -16,34 +16,18 @@ const PremiumPage = () => {
 
   const plans = [
     {
-      id: '1month',
-      duration: '1 oy',
-      price: '36 000',
-      originalPrice: null,
+      id: '2 weeks',
+      duration: '2 hafta',
+      price: '19 000',
       popular: false,
-      savings: null,
-      pricePerMonth: '36 000',
       badge: null
     },
     {
-      id: '2months',
-      duration: '2 oy',
-      price: '55 000',
-      originalPrice: '72 000',
+      id: '1months',
+      duration: '1 oy',
+      price: '29 000',
       popular: true,
-      savings: '17 000',
-      pricePerMonth: '27 500',
       badge: 'MASHHUR'  
-    },
-    {
-      id: '3months',
-      duration: '3 oy',
-      price: '80 000',
-      originalPrice: '108 000',
-      popular: false,
-      savings: '28 000',
-      pricePerMonth: '26 667',
-      badge: 'ENG TEJAMKOR'
     }
   ];
 
@@ -52,26 +36,6 @@ const PremiumPage = () => {
       icon: <Zap className="w-5 h-5 text-yellow-500" />,
       title: "Cheksiz foydalanish",
       description: "Barcha funksiyalardan cheklovsiz foydalaning"
-    },
-    {
-      icon: <Crown className="w-5 h-5 text-purple-500" />,
-      title: "Premium funksiyalar",
-      description: "Faqat premium foydalanuvchilar uchun maxsus imkoniyatlar"
-    },
-    {
-      icon: <Shield className="w-5 h-5 text-green-500" />,
-      title: "24/7 Qo'llab-quvvatlash",
-      description: "Har qanday savol yoki muammoda yordam"
-    },
-    {
-      icon: <Sparkles className="w-5 h-5 text-pink-500" />,
-      title: "Reklama yo'q",
-      description: "Hech qanday reklama va bezovtalik yo'q"
-    },
-    {
-      icon: <Star className="w-5 h-5 text-blue-500" />,
-      title: "Prioritet xizmat",
-      description: "Tezkor javob va birinchi navbatda xizmat ko'rsatish"
     },
     {
       icon: <Calendar className="w-5 h-5 text-indigo-500" />,
@@ -216,18 +180,8 @@ const PremiumPage = () => {
                                 {plan.originalPrice} so'm
                               </span>
                             )}
-                          </div>
-                          
-                          <div className="text-xs lg:text-sm text-gray-600">
-                            Oylik: {Math.round(parseInt(plan.pricePerMonth)).toLocaleString()} so'm
-                          </div>
-                          
-                          {plan.savings && (
-                            <div className="text-xs lg:text-sm text-green-600 font-medium">
-                              ✨ {plan.savings} so'm tejash
-                            </div>
-                          )}
-                        </div>
+                          </div>    
+                      </div>
                       </div>
                     </div>
                   </div>

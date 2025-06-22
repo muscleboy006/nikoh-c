@@ -12,7 +12,7 @@ export default function MainLayout() {
     if (path.includes('/chat')) return 'chat';
     if (path.includes('/saved')) return 'saqlanganlar';
     if (path.includes('/profile')) return 'profil';
-    return 'asosiy'; // Default
+    return ''; // Default
   };
   
   const handleTabChange = (tab) => {
