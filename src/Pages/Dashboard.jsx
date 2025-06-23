@@ -158,7 +158,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [totalProfiles, setTotalProfiles] = useState(0);
   const [filters, setFilters] = useState({
-    gender: 'Ayol',
+    gender: '',
     birthYearFrom: '',
     birthYearTo: '',
     city: '',
