@@ -146,15 +146,6 @@ const ProfilePage = () => {
     return labels[gender] || '—';
   };
 
-  const getMaritalStatusLabel = (status) => {
-    const labels = {
-      single: 'Yolg\'iz',
-      divorced: 'Ajrashgan',
-      widowed: 'Beva',
-    };
-    return labels[status] || '—';
-  };
-
   const fetchUserProfile = async () => {
     if (!currentUser?._id) return;
     const token = localStorage.getItem('token');
@@ -383,6 +374,54 @@ const ProfilePage = () => {
         </CardContent>
       </Card>
 
+      {/* Информация о пробном периоде */}
+      {!access && premiumEndsAt && formatPremiumEndDate(premiumEndsAt) && (
+        <Card className="w-full max-w-lg mb-6 shadow-md">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900">Premium muddat</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={isPremiumEnded ? "text-sm text-red-600" : "text-sm text-gray-700"}>
+              {isPremiumEnded
+                ? `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugagan`
+                : `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugaydi`}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className='w-full max-w-lg space-y-4'>
+        <Card className="w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold text-blue-800 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                ⭐ Premium obuna
+              </span>
+              <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full font-medium">
+                TOP
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              <p className="text-sm text-gray-700">
+                Cheksiz imkoniyatlar
+              </p>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <span className="text-green-600">✓</span>
+                <span>Barcha funksiyalar</span>
+              </div>
+              <Button
+                onClick={() => navigate('/premium')}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm h-10 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                💳 Sotib olish
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
       {/* Полная информация о пользователе */}
       <Card className="w-full max-w-lg mb-6 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between">
@@ -706,23 +745,6 @@ const ProfilePage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Информация о пробном периоде */}
-      {!access && premiumEndsAt && formatPremiumEndDate(premiumEndsAt) && (
-        <Card className="w-full max-w-lg mb-6 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">Premium muddat</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={isPremiumEnded ? "text-sm text-red-600" : "text-sm text-gray-700"}>
-              {isPremiumEnded
-                ? `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugagan`
-                : `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugaydi`}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Дополнительные элементы */}
       <div className="w-full max-w-lg space-y-4">
         <Card className="w-full shadow-md">
@@ -732,36 +754,6 @@ const ProfilePage = () => {
           <CardContent>
             Savol va takliflaringiz bolsa yozishingiz mumkun. <br />
             Telegram: <a href="https://t.me/hisobda_app" className="underline text-blue-600 hover:text-blue-800">@hisobda_app</a>
-          </CardContent>
-        </Card>
-
-        <Card className="w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold text-blue-800 flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                ⭐ Premium obuna
-              </span>
-              <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full font-medium">
-                TOP
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-3">
-              <p className="text-sm text-gray-700">
-                Cheksiz imkoniyatlar
-              </p>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <span className="text-green-600">✓</span>
-                <span>Barcha funksiyalar</span>
-              </div>
-              <Button
-                onClick={() => navigate('/premium')}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm h-10 font-medium shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                💳 Sotib olish
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>

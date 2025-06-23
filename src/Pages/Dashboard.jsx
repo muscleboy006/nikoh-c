@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +31,7 @@ import { useAccessStatus } from '@/Utils/useAccessStatus';
 const Dashboard = () => {
   const { currentUser, loading } = useAuth();
   const navigate = useNavigate();
+  const { access, premiumEndsAt, isLoading: accessLoading } = useAccessStatus();
   const [profiles, setProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -310,6 +311,22 @@ const Dashboard = () => {
     );
   }  
 
+  const formatPremiumEndDate = (date) => {
+    if (!date || isNaN(new Date(date).getTime())) return null;
+    const uzbekMonths = [
+      'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
+      'iyul', 'avgust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr'
+    ];
+    const d = new Date(date);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = uzbekMonths[d.getMonth()];
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    return `${day}-chi ${month}, soat ${hours}:${minutes}`;
+  };
+
+  const isPremiumEnded = premiumEndsAt && new Date(premiumEndsAt) < new Date();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Toaster position="top-right" richColors />
@@ -328,10 +345,6 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {/* <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                <Users className="w-3 h-3 mr-1" />
-                {totalProfiles} profil
-              </Badge> */}
               <Button
                 variant="outline"
                 size="sm"
@@ -498,6 +511,62 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Информация о пробном периоде */}
+        {/* {!access && premiumEndsAt && formatPremiumEndDate(premiumEndsAt) && (
+          <Card className="w-full max-w-lg -mt-5 mb-6">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-gray-900">Premium muddat</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className={isPremiumEnded ? "text-sm text-red-600" : "text-sm text-gray-700"}>
+                {isPremiumEnded
+                  ? `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugagan`
+                  : `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugaydi`}
+              </p>
+            </CardContent>
+          </Card>
+        )}         */}
+
+{!access && premiumEndsAt && formatPremiumEndDate(premiumEndsAt) && (
+  <div className="w-full max-w-lg -mt-5 mb-6">
+    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+      <div className="flex items-start space-x-3">
+        {/* Иконка */}
+        <div className="flex-shrink-0">
+          <div className="w-6 h-6 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        
+        {/* Контент */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-medium text-amber-800 mb-1">
+            <Link to='/premium' className='underline text-blue-400'>Premium</Link> muddat
+          </h3>
+          <p className={`text-xs leading-relaxed ${
+            isPremiumEnded 
+              ? "text-red-700 font-medium" 
+              : "text-amber-700"
+          }`}>
+            {isPremiumEnded
+              ? `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugagan`
+              : `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugaydi`}
+          </p>
+        </div>
+        
+        {/* Статус индикатор */}
+        <div className="flex-shrink-0">
+          <div className={`w-2 h-2 rounded-full ${
+            isPremiumEnded ? 'bg-red-400' : 'bg-amber-400'
+          }`} />
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Results */}
         <div className="space-y-4">
