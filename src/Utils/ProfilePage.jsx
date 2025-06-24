@@ -378,24 +378,25 @@ const ProfilePage = () => {
       
       <Card className="w-full max-w-lg mb-3 shadow-md p-4">
         <div className="text-xl font-semibold mb-2">🎯 Referal tizimi</div>
+
         <div className="text-lg">
-          Siz <span className="font-bold text-green-600">{userProfile.referrals.length}</span> do'stingizni taklif qildingiz.
+          Siz <span className="font-bold text-green-600">{userProfile?.referrals?.length ?? 0}</span> do'stingizni taklif qildingiz.
         </div>
+
         <div className="mt-2 text-sm text-gray-500">
           Agar 5 ta do'st taklif qilsangiz — 1 oylik premium a'zolik bepul bo'ladi.
         </div>
 
         <div className="mt-4">
-          {userProfile.referrals.length >= 5 ? (
+          {(userProfile?.referrals?.length ?? 0) >= 5 ? (
             <div className="text-green-600 font-semibold">🎉 Siz premium olishingiz mumkin!</div>
           ) : (
             <div className="text-blue-600">
-              {5 - userProfile.referrals.length} ta do'st qolgan.
+              {5 - (userProfile?.referrals?.length ?? 0)} ta do'st qolgan.
             </div>
           )}
         </div>
       </Card>
-
 
       {/* Информация о пробном периоде */}
       {!access && premiumEndsAt && formatPremiumEndDate(premiumEndsAt) && (
