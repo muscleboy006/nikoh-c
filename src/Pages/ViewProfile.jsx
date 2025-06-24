@@ -244,16 +244,6 @@ const ViewProfile = () => {
         </div>
       ),
     },
-    {
-      key: 'marriage',
-      title: 'Nikoh rejalari',
-      icon: <Heart className="h-5 w-5" />,
-      content: (
-        <div className="space-y-3">
-          {renderBooleanField('Ota-onalar roziligi', userProfile.marriageGoals?.parentApproval)}
-        </div>
-      ),
-    }
   ];
 
   return (
@@ -275,7 +265,6 @@ const ViewProfile = () => {
         </div>
 
         <Card className="mb-6 overflow-hidden shadow-lg">
-          {/* <div className="h-32 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500"></div> */}
           
           <CardContent className="relative pt-0">
             <div className="flex flex-col items-center">
