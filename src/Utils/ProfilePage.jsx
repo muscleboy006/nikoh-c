@@ -379,7 +379,7 @@ const ProfilePage = () => {
       <Card className="w-full max-w-lg mb-3 shadow-md p-4">
         <div className="text-xl font-semibold mb-2">🎯 Referal tizimi</div>
         <div className="text-lg">
-          Siz <span className="font-bold text-green-600">{userProfile.referrals.count}</span> do'stingizni taklif qildingiz.
+          Siz <span className="font-bold text-green-600">{userProfile.referrals.length}</span> do'stingizni taklif qildingiz.
         </div>
         <div className="mt-2 text-sm text-gray-500">
           Agar 5 ta do'st taklif qilsangiz — 1 oylik premium a'zolik bepul bo'ladi.
