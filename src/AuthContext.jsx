@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     
     // Telegram отправляет несколько параметров, включая id, first_name, etc.
     for (const [key, value] of urlParams.entries()) {
-      if (['id', 'first_name', 'last_name', 'username', 'photo_url', 'auth_date', 'hash'].includes(key)) {
+      if (['id', 'first_name', 'last_name', 'gender', 'username', 'photo_url', 'auth_date', 'hash'].includes(key)) {
         telegramData[key] = value;
         hasTelegramData = true;
       }

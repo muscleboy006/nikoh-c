@@ -128,7 +128,8 @@ const ProfileCard = React.memo(({ profile, navigate, savedAnketas, toggleSave, s
               <Heart className="w-5 h-5 text-gray-400 transition-all duration-200" />
             )}
           </Button>
-          {currentUser?._id?.toString() !== profile?._id?.toString() ? (
+          {console.log(currentUser?.profile?.gender, profile?.profile?.gender)}
+          {currentUser?._id?.toString() !== profile?._id?.toString() && currentUser?.profile?.gender !== profile?.profile?.gender ? (
             <Button
               variant="ghost"
               size="icon"
@@ -157,8 +158,9 @@ const Dashboard = () => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalProfiles, setTotalProfiles] = useState(0);
+  const oppositeGender = currentUser?.profile?.gender === 'Erkak' ? 'Ayol' : 'Erkak';
   const [filters, setFilters] = useState({
-    gender: '',
+    gender: oppositeGender,
     birthYearFrom: '',
     birthYearTo: '',
     city: '',
@@ -429,7 +431,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Nikoh.uz</h1>
-                <p className="text-xs text-gray-500">Halol tanishuv platformasi</p>
+                <p className="text-xs text-gray-500">Nikoh uchun tanishuv platformasi</p>
               </div>
             </div>
             <div className="flex items-center gap-4">

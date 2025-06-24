@@ -376,7 +376,7 @@ const ProfilePage = () => {
         </CardContent>
       </Card>
       
-      <Card className="w-full max-w-lg mb-3 shadow-md p-4">
+      {/* <Card className="w-full max-w-lg mb-3 shadow-md p-4">
         <div className="text-xl font-semibold mb-2">🎯 Referal tizimi</div>
 
         <div className="text-lg">
@@ -396,10 +396,49 @@ const ProfilePage = () => {
             </div>
           )}
         </div>
+      </Card> */}
+      <Card className="w-full max-w-lg mb-3 shadow-md p-4">
+        <div className="text-xl font-semibold mb-2">🎯 Referal tizimi</div>
+
+        {userProfile?.profile?.gender === 'Ayol' ? (
+          // 🔥 Версия для женщин
+          <>
+            <div className="text-lg">
+              Do'stlaringizni taklif qiling va platformamizda ko'proq odam bahtini topishiga yordam bering!
+            </div>
+            <div className='text-sm'>
+              Referal havolani bot orqali olishingiz mumkun!
+            </div>
+          </>
+        ) : (
+          // 🔥 Версия для мужчин
+          <>
+            <div className="text-lg">
+              Siz <span className="font-bold text-green-600">{userProfile?.referrals?.length ?? 0}</span> do'stingizni taklif qildingiz.
+            </div>
+
+            <div className="mt-2 text-sm text-gray-500">
+              Agar 5 ta do'st taklif qilsangiz — 1 oylik premium a'zolik bepul bo'ladi.
+            </div>
+            <div className='text-sm'>
+              Referal havolani bot orqali olishingiz mumkun!
+            </div>
+            <div className="mt-4">
+              {(userProfile?.referrals?.length ?? 0) >= 5 ? (
+                <div className="text-green-600 font-semibold">🎉 Siz premium olishingiz mumkin!</div>
+              ) : (
+                <div className="text-blue-600">
+                  {5 - (userProfile?.referrals?.length ?? 0)} ta do'st qolgan.
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </Card>
 
+
       {/* Информация о пробном периоде */}
-      {!access && premiumEndsAt && formatPremiumEndDate(premiumEndsAt) && (
+      {userProfile.profile.gender !== 'Ayol' && !access && premiumEndsAt && formatPremiumEndDate(premiumEndsAt) && (
         <Card className="w-full max-w-lg mb-6 shadow-md">
           <CardHeader>
             <CardTitle className="text-lg font-semibold text-gray-900">Premium muddat</CardTitle>
@@ -414,6 +453,7 @@ const ProfilePage = () => {
         </Card>
       )}
 
+      {userProfile.profile.gender !== 'Ayol' ?
       <div className='w-full max-w-lg space-y-4'>
         <Card className="w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="pb-3">
@@ -444,8 +484,8 @@ const ProfilePage = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
-      
+      </div> : null
+      }
       {/* Полная информация о пользователе */}
       <Card className="w-full max-w-lg mb-6 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between">

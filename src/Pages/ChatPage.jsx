@@ -7,6 +7,7 @@ import { ArrowLeft, Send, MoreVertical, Phone, Video, Paperclip, Smile, Pin } fr
 import api from '@/Utils/api';
 import { useAuth } from '@/AuthContext';
 import io from 'socket.io-client';
+import { Toaster, toast } from 'sonner';
 
 const ChatPage = () => {
   const { currentUser, loading } = useAuth();
@@ -78,7 +79,7 @@ const ChatPage = () => {
           }
         });
         setChat(resChat.data.participant);
-        console.log(resChat.data.participant);
+        console.log(resChat.data);
 
         const response = await axios.get(`${api}/chat/chats/${chatId}/messages`, {
           headers: {
@@ -152,8 +153,35 @@ const ChatPage = () => {
     return senderId === currentUser?._id;
   };
 
+// Проверяем только твое условие
+const isMan = currentUser?.profile?.gender === 'Erkak';
+const isWoman = currentUser?.profile?.gender === 'Ayol';
+const isChatWithWoman = chat?.profile?.gender === 'Ayol';
+const isChatWithMan = chat?.profile?.gender === 'Erkak';
+const isPremium = currentUser?.isPremium || false;
+
+let canSendMessage = true;
+
+// Если мужчина общается с женщиной — смотрим ограничения
+if (isMan && isChatWithWoman) {
+  canSendMessage = true; // Мужик пишет женщине — всегда можно
+}
+
+// Если женщина общается с мужчиной — смотрим премиум
+if (isWoman && isChatWithMan) {
+  canSendMessage = true; // Женщина пишет мужчине — всегда можно
+}
+
+// Если мужчина отвечает женщине — проверяем премиум
+if (isMan && isChatWithWoman && !isPremium) {
+  // Здесь твое ключевое условие:
+  canSendMessage = false;
+}
+
+
   return (
     <div className="flex flex-col h-[90vh] bg-gray-50">
+      <Toaster richColors position="top-center" />
       {/* Suhbat sarlavhasi */}
       <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm">
         <div className="flex items-center space-x-3">
@@ -285,7 +313,13 @@ const ChatPage = () => {
           </div>
 
           <Button
-            onClick={handleSendMessage}
+            onClick={() => {
+              if (!canSendMessage) {
+                toast.error("Sizga yozgan ayolga yozish uchun premium kerak.");
+                return;
+              }
+              handleSendMessage();
+            }}
             disabled={!newMessage.trim() || !isConnected}
             className={`p-3 rounded-full transition-all ${newMessage.trim() && isConnected
                 ? 'bg-blue-500 hover:bg-blue-600 text-white'
