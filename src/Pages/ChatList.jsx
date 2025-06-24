@@ -156,7 +156,7 @@ const ChatList = () => {
           <div className="flex-shrink-0 mr-3">
             {chat.participant.photo_url ? (
               <img
-                src={chat.participant.photo_url}
+                src={api+chat.participant.photo_url}
                 alt="Avatar"
                 className="w-12 h-12 rounded-full object-cover"
               />

@@ -100,7 +100,7 @@ const ProfileCard = React.memo(({ profile, navigate, savedAnketas, toggleSave, s
 
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Moon className="w-4 h-4 text-gray-400" />
-            <span>Nomoz: {profile.religiousPractice?.prayer || 'Ko\'rsatilmagan'}</span>
+            <span>Holati: {profile.profile?.maritalStatus || 'Ko\'rsatilmagan'}</span>
           </div>
 
           <div className="flex flex-wrap gap-2 mt-3">
@@ -219,6 +219,8 @@ const Dashboard = () => {
 
       const response = await axios.get(`${api}/tg/search`, config);
       const data = response.data.data || response.data;
+      console.log(response.data);
+      
 
       if (page === 1) {
         setProfiles(Array.isArray(data) ? data : []);
@@ -564,21 +566,6 @@ const Dashboard = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
-                {showHijabFilter && (
-                  <div className="flex items-center space-x-2 bg-white rounded-lg p-3 border border-gray-200">
-                    <input
-                      type="checkbox"
-                      id="hijab"
-                      checked={filters.hijab}
-                      onChange={(e) => handleFilterChange('hijab', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <Label htmlFor="hijab" className="text-sm font-medium text-gray-700">
-                      Hijob
-                    </Label>
-                  </div>
-                )}
               </div>
 
               <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
