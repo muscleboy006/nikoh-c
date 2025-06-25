@@ -70,6 +70,19 @@ function App() {
     )
   }
 
+  useEffect(() => {
+    const telegram = window.Telegram?.WebApp;
+    const rawInitData = telegram?.initData;
+  
+    if (rawInitData) {
+      console.log("✅ initData найден и сохранён");
+      localStorage.setItem('initData', rawInitData);
+    } else {
+      console.warn("⚠️ initData не найден — возможно, вы зашли не через Telegram WebApp");
+    }
+  }, []);
+  
+
   return (
     <AuthProvider>
       <Router>

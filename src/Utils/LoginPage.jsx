@@ -76,7 +76,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import TelegramLoginButton from './TelegramLoginButton';
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card, CardContent, CardDescription, CardFooter,
+  CardHeader, CardTitle
+} from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -86,16 +89,25 @@ const LoginPage = () => {
   const [initData, setInitData] = useState('');
 
   useEffect(() => {
-    if (window.Telegram && window.Telegram.WebApp) {
-      console.log(window);
-      console.log(window.Telegram);
-      console.log(window.Telegram.WebApp);
-      setInitData(window.Telegram.WebApp.initData || 'initData not found');
+    // Пытаемся взять из localStorage
+    const savedInitData = localStorage.getItem('initData');
+
+    if (savedInitData) {
+      setInitData(savedInitData);
+      console.log('✅ initData from localStorage:', savedInitData);
+    } else if (window.Telegram?.WebApp?.initData) {
+      // fallback если вдруг localStorage пуст
+      const rawInitData = window.Telegram.WebApp.initData;
+      setInitData(rawInitData);
+      localStorage.setItem('initData', rawInitData);
+      console.log('✅ initData from Telegram SDK:', rawInitData);
     } else {
-      setInitData('Telegram WebApp object not available');
+      setInitData('⚠️ initData not available');
+      console.warn('⚠️ Telegram WebApp initData not found');
     }
   }, []);
 
+  // Редирект если авторизован
   useEffect(() => {
     if (currentUser && !loading) {
       navigate('/dashboard');
@@ -142,7 +154,7 @@ const LoginPage = () => {
         <CardContent className="flex flex-col items-center pt-4 space-y-4">
           <TelegramLoginButton />
 
-          {/* Показываем initData */}
+          {/* Показываем initData (для отладки) */}
           <div className="w-full text-xs text-muted-foreground bg-gray-50 p-2 rounded overflow-x-auto max-h-40">
             <strong>initData:</strong>
             <pre className="whitespace-pre-wrap break-words">{initData}</pre>
