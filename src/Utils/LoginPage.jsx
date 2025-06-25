@@ -87,6 +87,9 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (window.Telegram && window.Telegram.WebApp) {
+      console.log(window);
+      console.log(window.Telegram);
+      console.log(window.Telegram.WebApp);
       setInitData(window.Telegram.WebApp.initData || 'initData not found');
     } else {
       setInitData('Telegram WebApp object not available');
