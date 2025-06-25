@@ -87,6 +87,26 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [isWebApp, setIsWebApp] = useState(false);
+  
+  // Проверяем, что мы в Telegram Web App
+  useEffect(() => {
+    const checkWebApp = () => {
+      if (window.Telegram?.WebApp) {
+        setIsWebApp(true);
+        // Расширяем WebApp на весь экран
+        window.Telegram.WebApp.expand();
+        // Готовим WebApp
+        window.Telegram.WebApp.ready();
+      }
+    };
+    
+    // Проверяем сразу и через небольшую задержку на случай если скрипт еще загружается
+    checkWebApp();
+    const timer = setTimeout(checkWebApp, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   // Функция для автоматической авторизации через Telegram Web App
   const authenticateWithTelegramWebApp = async () => {
@@ -119,6 +139,7 @@ const LoginPage = () => {
       const telegramId = userData.id;
       
       console.log('Telegram User ID:', telegramId);
+      console.log('User Data:', userData);
       
       // Отправляем запрос на сервер для получения токена
       const response = await fetch(`${api}/tg/telegram-webapp`, {
@@ -128,7 +149,7 @@ const LoginPage = () => {
         },
         body: JSON.stringify({
           telegramId: telegramId,
-          initData: initData, // Отправляем полные данные для верификации на сервере
+          initData: initData,
           userData: userData
         }),
       });
@@ -139,6 +160,11 @@ const LoginPage = () => {
       }
       
       const authData = await response.json();
+      
+      if (!authData.success) {
+        throw new Error(authData.message || 'Ошибка авторизации');
+      }
+      
       const { token, user } = authData;
       
       // Сохраняем токен в localStorage
@@ -162,6 +188,11 @@ const LoginPage = () => {
   // Проверяем токен в localStorage при загрузке
   useEffect(() => {
     const checkExistingAuth = async () => {
+      // Если пользователь уже авторизован, не проверяем заново
+      if (currentUser) {
+        return;
+      }
+      
       const token = localStorage.getItem('token');
       const userData = localStorage.getItem('user');
       
@@ -169,6 +200,7 @@ const LoginPage = () => {
         try {
           // Проверяем валидность токена
           const response = await fetch(`${api}/auth/verify`, {
+            method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -191,16 +223,16 @@ const LoginPage = () => {
         }
       }
       
-      // Если нет валидного токена, пытаемся авторизоваться через Telegram Web App
-      if (window.Telegram?.WebApp) {
+      // Если нет валидного токена и мы в Telegram Web App, пытаемся авторизоваться
+      if (isWebApp && window.Telegram?.WebApp?.initData) {
         await authenticateWithTelegramWebApp();
       }
     };
     
-    if (!currentUser && !loading) {
+    if (!loading) {
       checkExistingAuth();
     }
-  }, [currentUser, loading, navigate, setCurrentUser]);
+  }, [currentUser, loading, navigate, setCurrentUser, isWebApp]);
   
   // Перенаправляем пользователя, если он уже авторизован
   useEffect(() => {
@@ -234,7 +266,7 @@ const LoginPage = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Tizimga kirish</CardTitle>
           <CardDescription className="text-center">
-            {window.Telegram?.WebApp ? 
+            {isWebApp ? 
               'Telegram orqali avtomatik avtorizatsiya...' : 
               'Telegram hisobingiz orqali kiring'
             }
@@ -242,7 +274,7 @@ const LoginPage = () => {
         </CardHeader>
         
         {(error || authError) && (
-          <div className="px-6">
+          <div className="px-6 pb-4">
             <Alert variant="destructive">
               <AlertDescription>{error || authError}</AlertDescription>
             </Alert>
@@ -250,19 +282,22 @@ const LoginPage = () => {
         )}
         
         <CardContent className="flex justify-center pt-4">
-          {!window.Telegram?.WebApp && <TelegramLoginButton />}
-          {window.Telegram?.WebApp && (
-            <div className="text-center">
+          {!isWebApp && <TelegramLoginButton />}
+          
+          {isWebApp && (
+            <div className="text-center w-full">
               <p className="text-sm text-muted-foreground mb-4">
                 Avtomatik avtorizatsiya jarayoni...
               </p>
-              <button 
-                onClick={authenticateWithTelegramWebApp}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                disabled={isAuthenticating}
-              >
-                {isAuthenticating ? 'Yuklanmoqda...' : 'Qayta urinish'}
-              </button>
+              {authError && (
+                <button 
+                  onClick={authenticateWithTelegramWebApp}
+                  className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
+                  disabled={isAuthenticating}
+                >
+                  {isAuthenticating ? 'Yuklanmoqda...' : 'Qayta urinish'}
+                </button>
+              )}
             </div>
           )}
         </CardContent>
