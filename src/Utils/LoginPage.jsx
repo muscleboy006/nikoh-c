@@ -89,56 +89,89 @@ const LoginPage = () => {
   const [initData, setInitData] = useState(null);
   const [isWebApp, setIsWebApp] = useState(false);
   const [debugInfo, setDebugInfo] = useState({});
+  const [allWindowProperties, setAllWindowProperties] = useState({});
   
   // Проверяем, запущено ли приложение в Telegram Web App
   useEffect(() => {
     const checkTelegramWebApp = () => {
+      // Собираем все Telegram-связанные свойства из window
+      const telegramProps = {};
+      for (let prop in window) {
+        if (prop.toLowerCase().includes('telegram') || prop.toLowerCase().includes('tg')) {
+          try {
+            telegramProps[prop] = typeof window[prop] === 'object' ? 
+              JSON.stringify(window[prop], null, 2) : window[prop];
+          } catch (e) {
+            telegramProps[prop] = `[Error: ${e.message}]`;
+          }
+        }
+      }
+
       const debug = {
         hasTelegram: !!window.Telegram,
         hasWebApp: !!(window.Telegram && window.Telegram.WebApp),
         userAgent: navigator.userAgent,
         locationSearch: window.location.search,
+        locationHref: window.location.href,
         referrer: document.referrer,
         hasTelegramWebviewProxy: !!window.TelegramWebviewProxy,
         locationHash: window.location.hash,
         telegramWebAppData: null,
         initDataRaw: null,
-        webAppProperties: {}
+        webAppProperties: {},
+        telegramProps: telegramProps,
+        documentCookies: document.cookie,
+        sessionStorageKeys: [],
+        localStorageKeys: []
       };
+
+      // Проверяем sessionStorage и localStorage
+      try {
+        debug.sessionStorageKeys = Object.keys(sessionStorage);
+        debug.localStorageKeys = Object.keys(localStorage);
+      } catch (e) {
+        debug.storageError = e.message;
+      }
 
       // Проверяем различные способы определения Telegram Web App
       const isTelegramWebApp = 
         // Основной способ - проверка window.Telegram.WebApp
         (window.Telegram && window.Telegram.WebApp) ||
         // Проверка через user agent
-        /TelegramWebApp/.test(navigator.userAgent) ||
+        /TelegramWebApp/i.test(navigator.userAgent) ||
+        /Telegram/i.test(navigator.userAgent) ||
         // Проверка через параметры URL
         window.location.search.includes('tgWebAppData') ||
+        window.location.href.includes('tgWebAppData') ||
         // Проверка через referrer
         document.referrer.includes('t.me') ||
         // Проверка через window.TelegramWebviewProxy (для некоторых версий)
         window.TelegramWebviewProxy ||
         // Проверка через hash
-        window.location.hash.includes('tgWebAppData');
+        window.location.hash.includes('tgWebAppData') ||
+        // Проверка на наличие любых Telegram-связанных свойств
+        Object.keys(telegramProps).length > 0;
 
       if (window.Telegram && window.Telegram.WebApp) {
         const webApp = window.Telegram.WebApp;
         
-        // Собираем все доступные свойства WebApp
-        debug.webAppProperties = {
-          initData: webApp.initData || 'empty',
-          initDataUnsafe: webApp.initDataUnsafe || 'empty',
-          version: webApp.version || 'unknown',
-          platform: webApp.platform || 'unknown',
-          colorScheme: webApp.colorScheme || 'unknown',
-          themeParams: webApp.themeParams || {},
-          isExpanded: webApp.isExpanded || false,
-          viewportHeight: webApp.viewportHeight || 0,
-          viewportStableHeight: webApp.viewportStableHeight || 0,
-          isClosingConfirmationEnabled: webApp.isClosingConfirmationEnabled || false,
-          headerColor: webApp.headerColor || 'unknown',
-          backgroundColor: webApp.backgroundColor || 'unknown'
-        };
+        // Собираем ВСЕ доступные свойства WebApp
+        const webAppProps = {};
+        for (let prop in webApp) {
+          try {
+            if (typeof webApp[prop] === 'function') {
+              webAppProps[prop] = '[Function]';
+            } else if (typeof webApp[prop] === 'object' && webApp[prop] !== null) {
+              webAppProps[prop] = JSON.parse(JSON.stringify(webApp[prop]));
+            } else {
+              webAppProps[prop] = webApp[prop];
+            }
+          } catch (e) {
+            webAppProps[prop] = `[Error: ${e.message}]`;
+          }
+        }
+        
+        debug.webAppProperties = webAppProps;
 
         // Получаем initData
         if (webApp.initData) {
@@ -150,36 +183,88 @@ const LoginPage = () => {
         if (webApp.initDataUnsafe && Object.keys(webApp.initDataUnsafe).length > 0) {
           debug.telegramWebAppData = webApp.initDataUnsafe;
         }
+
+        // Пробуем различные методы получения данных пользователя
+        try {
+          if (typeof webApp.sendData === 'function') {
+            debug.hasSendData = true;
+          }
+          if (typeof webApp.requestWriteAccess === 'function') {
+            debug.hasRequestWriteAccess = true;
+          }
+          if (typeof webApp.requestContact === 'function') {
+            debug.hasRequestContact = true;
+          }
+        } catch (e) {
+          debug.webAppMethodsError = e.message;
+        }
         
         // Расширяем WebApp для лучшего отображения
-        webApp.expand();
-        
-        // Устанавливаем готовность приложения
-        webApp.ready();
+        try {
+          webApp.expand();
+          webApp.ready();
+        } catch (e) {
+          debug.webAppInitError = e.message;
+        }
       }
 
-      // Проверяем URL параметры
+      // Проверяем все возможные источники данных в URL
       const urlParams = new URLSearchParams(window.location.search);
-      const tgWebAppData = urlParams.get('tgWebAppData');
-      if (tgWebAppData) {
-        setInitData(decodeURIComponent(tgWebAppData));
-        debug.telegramWebAppData = decodeURIComponent(tgWebAppData);
+      const allUrlParams = {};
+      for (let [key, value] of urlParams) {
+        allUrlParams[key] = value;
+        if (key.toLowerCase().includes('tg') || key.toLowerCase().includes('telegram')) {
+          try {
+            const decoded = decodeURIComponent(value);
+            setInitData(decoded);
+            debug.telegramWebAppData = decoded;
+          } catch (e) {
+            debug.urlDecodeError = e.message;
+          }
+        }
       }
+      debug.allUrlParams = allUrlParams;
 
       // Проверяем hash параметры
       if (window.location.hash) {
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const hashTgData = hashParams.get('tgWebAppData');
-        if (hashTgData) {
-          setInitData(decodeURIComponent(hashTgData));
-          debug.telegramWebAppData = decodeURIComponent(hashTgData);
+        const allHashParams = {};
+        for (let [key, value] of hashParams) {
+          allHashParams[key] = value;
+          if (key.toLowerCase().includes('tg') || key.toLowerCase().includes('telegram')) {
+            try {
+              const decoded = decodeURIComponent(value);
+              setInitData(decoded);
+              debug.telegramWebAppData = decoded;
+            } catch (e) {
+              debug.hashDecodeError = e.message;
+            }
+          }
+        }
+        debug.allHashParams = allHashParams;
+      }
+
+      // Проверяем document.referrer более детально
+      if (document.referrer) {
+        try {
+          const referrerUrl = new URL(document.referrer);
+          const referrerParams = new URLSearchParams(referrerUrl.search);
+          const referrerData = {};
+          for (let [key, value] of referrerParams) {
+            referrerData[key] = value;
+          }
+          debug.referrerParams = referrerData;
+        } catch (e) {
+          debug.referrerParseError = e.message;
         }
       }
 
       debug.isTelegramWebApp = isTelegramWebApp;
       setDebugInfo(debug);
+      setAllWindowProperties(telegramProps);
 
-      console.log('Telegram Web App Debug Info:', debug);
+      console.log('🔍 Полная диагностика Telegram Web App:', debug);
+      console.log('🔍 Все Telegram свойства window:', telegramProps);
 
       if (isTelegramWebApp) {
         setIsWebApp(true);
@@ -189,15 +274,13 @@ const LoginPage = () => {
     // Проверяем сразу
     checkTelegramWebApp();
     
-    // Также проверяем через небольшую задержку, на случай если API загружается асинхронно
-    const timeoutId = setTimeout(checkTelegramWebApp, 100);
-    
-    // Еще одна проверка через большую задержку
-    const timeoutId2 = setTimeout(checkTelegramWebApp, 500);
+    // Проверяем с задержками
+    const timeouts = [100, 500, 1000, 2000].map(delay => 
+      setTimeout(checkTelegramWebApp, delay)
+    );
     
     return () => {
-      clearTimeout(timeoutId);
-      clearTimeout(timeoutId2);
+      timeouts.forEach(clearTimeout);
     };
   }, []);
   
