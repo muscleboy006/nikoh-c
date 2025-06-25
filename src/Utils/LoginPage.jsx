@@ -88,10 +88,24 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [initData, setInitData] = useState(null);
   const [isWebApp, setIsWebApp] = useState(false);
+  const [debugInfo, setDebugInfo] = useState({});
   
   // Проверяем, запущено ли приложение в Telegram Web App
   useEffect(() => {
     const checkTelegramWebApp = () => {
+      const debug = {
+        hasTelegram: !!window.Telegram,
+        hasWebApp: !!(window.Telegram && window.Telegram.WebApp),
+        userAgent: navigator.userAgent,
+        locationSearch: window.location.search,
+        referrer: document.referrer,
+        hasTelegramWebviewProxy: !!window.TelegramWebviewProxy,
+        locationHash: window.location.hash,
+        telegramWebAppData: null,
+        initDataRaw: null,
+        webAppProperties: {}
+      };
+
       // Проверяем различные способы определения Telegram Web App
       const isTelegramWebApp = 
         // Основной способ - проверка window.Telegram.WebApp
@@ -103,46 +117,72 @@ const LoginPage = () => {
         // Проверка через referrer
         document.referrer.includes('t.me') ||
         // Проверка через window.TelegramWebviewProxy (для некоторых версий)
-        window.TelegramWebviewProxy;
+        window.TelegramWebviewProxy ||
+        // Проверка через hash
+        window.location.hash.includes('tgWebAppData');
 
-      console.log('Checking Telegram Web App:', {
-        'window.Telegram': !!window.Telegram,
-        'window.Telegram.WebApp': !!(window.Telegram && window.Telegram.WebApp),
-        'userAgent': navigator.userAgent,
-        'location.search': window.location.search,
-        'referrer': document.referrer,
-        'TelegramWebviewProxy': !!window.TelegramWebviewProxy,
-        'isTelegramWebApp': isTelegramWebApp
-      });
+      if (window.Telegram && window.Telegram.WebApp) {
+        const webApp = window.Telegram.WebApp;
+        
+        // Собираем все доступные свойства WebApp
+        debug.webAppProperties = {
+          initData: webApp.initData || 'empty',
+          initDataUnsafe: webApp.initDataUnsafe || 'empty',
+          version: webApp.version || 'unknown',
+          platform: webApp.platform || 'unknown',
+          colorScheme: webApp.colorScheme || 'unknown',
+          themeParams: webApp.themeParams || {},
+          isExpanded: webApp.isExpanded || false,
+          viewportHeight: webApp.viewportHeight || 0,
+          viewportStableHeight: webApp.viewportStableHeight || 0,
+          isClosingConfirmationEnabled: webApp.isClosingConfirmationEnabled || false,
+          headerColor: webApp.headerColor || 'unknown',
+          backgroundColor: webApp.backgroundColor || 'unknown'
+        };
+
+        // Получаем initData
+        if (webApp.initData) {
+          setInitData(webApp.initData);
+          debug.initDataRaw = webApp.initData;
+        }
+
+        // Пробуем получить данные из initDataUnsafe
+        if (webApp.initDataUnsafe && Object.keys(webApp.initDataUnsafe).length > 0) {
+          debug.telegramWebAppData = webApp.initDataUnsafe;
+        }
+        
+        // Расширяем WebApp для лучшего отображения
+        webApp.expand();
+        
+        // Устанавливаем готовность приложения
+        webApp.ready();
+      }
+
+      // Проверяем URL параметры
+      const urlParams = new URLSearchParams(window.location.search);
+      const tgWebAppData = urlParams.get('tgWebAppData');
+      if (tgWebAppData) {
+        setInitData(decodeURIComponent(tgWebAppData));
+        debug.telegramWebAppData = decodeURIComponent(tgWebAppData);
+      }
+
+      // Проверяем hash параметры
+      if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const hashTgData = hashParams.get('tgWebAppData');
+        if (hashTgData) {
+          setInitData(decodeURIComponent(hashTgData));
+          debug.telegramWebAppData = decodeURIComponent(hashTgData);
+        }
+      }
+
+      debug.isTelegramWebApp = isTelegramWebApp;
+      setDebugInfo(debug);
+
+      console.log('Telegram Web App Debug Info:', debug);
 
       if (isTelegramWebApp) {
         setIsWebApp(true);
-        
-        if (window.Telegram && window.Telegram.WebApp) {
-          const webApp = window.Telegram.WebApp;
-          
-          // Получаем initData
-          if (webApp.initData) {
-            setInitData(webApp.initData);
-            console.log('InitData found:', webApp.initData);
-          } else {
-            console.log('No initData available');
-          }
-          
-          // Расширяем WebApp для лучшего отображения
-          webApp.expand();
-          
-          // Устанавливаем готовность приложения
-          webApp.ready();
-        } else {
-          // Если WebApp API недоступен, но мы в Telegram, пытаемся получить данные из URL
-          const urlParams = new URLSearchParams(window.location.search);
-          const tgWebAppData = urlParams.get('tgWebAppData');
-          if (tgWebAppData) {
-            setInitData(decodeURIComponent(tgWebAppData));
-            console.log('InitData from URL:', tgWebAppData);
-          }
-        }
       }
     };
 
@@ -152,7 +192,13 @@ const LoginPage = () => {
     // Также проверяем через небольшую задержку, на случай если API загружается асинхронно
     const timeoutId = setTimeout(checkTelegramWebApp, 100);
     
-    return () => clearTimeout(timeoutId);
+    // Еще одна проверка через большую задержку
+    const timeoutId2 = setTimeout(checkTelegramWebApp, 500);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutId2);
+    };
   }, []);
   
   // Перенаправляем пользователя, если он уже авторизован
@@ -258,16 +304,48 @@ const LoginPage = () => {
               <div>
                 <h4 className="font-medium mb-2">Debug Info:</h4>
                 <div className="bg-gray-50 p-3 rounded-md text-xs space-y-1">
-                  <div><strong>User Agent:</strong> {navigator.userAgent}</div>
-                  <div><strong>Referrer:</strong> {document.referrer || 'N/A'}</div>
-                  <div><strong>URL Search:</strong> {window.location.search || 'N/A'}</div>
-                  <div><strong>Telegram Object:</strong> {window.Telegram ? 'Available' : 'Not Available'}</div>
-                  <div><strong>WebApp Object:</strong> {(window.Telegram && window.Telegram.WebApp) ? 'Available' : 'Not Available'}</div>
-                  <div><strong>TelegramWebviewProxy:</strong> {window.TelegramWebviewProxy ? 'Available' : 'Not Available'}</div>
+                  <div><strong>User Agent:</strong> {debugInfo.userAgent}</div>
+                  <div><strong>Referrer:</strong> {debugInfo.referrer || 'N/A'}</div>
+                  <div><strong>URL Search:</strong> {debugInfo.locationSearch || 'N/A'}</div>
+                  <div><strong>URL Hash:</strong> {debugInfo.locationHash || 'N/A'}</div>
+                  <div><strong>Telegram Object:</strong> {debugInfo.hasTelegram ? 'Available' : 'Not Available'}</div>
+                  <div><strong>WebApp Object:</strong> {debugInfo.hasWebApp ? 'Available' : 'Not Available'}</div>
+                  <div><strong>TelegramWebviewProxy:</strong> {debugInfo.hasTelegramWebviewProxy ? 'Available' : 'Not Available'}</div>
+                  <div><strong>Is Telegram Web App:</strong> {debugInfo.isTelegramWebApp ? 'Yes' : 'No'}</div>
                 </div>
               </div>
               
               <Separator />
+
+              {/* WebApp Properties */}
+              {debugInfo.webAppProperties && Object.keys(debugInfo.webAppProperties).length > 0 && (
+                <>
+                  <div>
+                    <h4 className="font-medium mb-2">WebApp Properties:</h4>
+                    <div className="bg-gray-50 p-3 rounded-md">
+                      <pre className="text-xs overflow-auto">
+                        {JSON.stringify(debugInfo.webAppProperties, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
+              {/* initDataUnsafe */}
+              {debugInfo.telegramWebAppData && (
+                <>
+                  <div>
+                    <h4 className="font-medium mb-2">Telegram Web App Data (initDataUnsafe):</h4>
+                    <div className="bg-gray-50 p-3 rounded-md">
+                      <pre className="text-xs overflow-auto">
+                        {JSON.stringify(debugInfo.telegramWebAppData, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                  <Separator />
+                </>
+              )}
               
               {/* Статус Web App */}
               <div>
@@ -303,10 +381,37 @@ const LoginPage = () => {
                 </div>
               )}
               
+              {/* Информация о пользователе из initDataUnsafe */}
+              {debugInfo.telegramWebAppData?.user && (
+                <div>
+                  <h4 className="font-medium mb-2">User Info (from initDataUnsafe):</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="font-medium">ID:</span> {debugInfo.telegramWebAppData.user.id}
+                    </div>
+                    <div>
+                      <span className="font-medium">Username:</span> @{debugInfo.telegramWebAppData.user.username || 'N/A'}
+                    </div>
+                    <div>
+                      <span className="font-medium">First Name:</span> {debugInfo.telegramWebAppData.user.first_name}
+                    </div>
+                    <div>
+                      <span className="font-medium">Last Name:</span> {debugInfo.telegramWebAppData.user.last_name || 'N/A'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Language:</span> {debugInfo.telegramWebAppData.user.language_code}
+                    </div>
+                    <div>
+                      <span className="font-medium">Premium:</span> {debugInfo.telegramWebAppData.user.is_premium ? 'Yes' : 'No'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Информация о пользователе */}
               {parsedInitData?.user && (
                 <div>
-                  <h4 className="font-medium mb-2">User Info:</h4>
+                  <h4 className="font-medium mb-2">User Info (from parsed initData):</h4>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="font-medium">ID:</span> {parsedInitData.user.id}
