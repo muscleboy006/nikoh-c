@@ -80,159 +80,30 @@ import TelegramLoginButton from './TelegramLoginButton';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import api from './api';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 const LoginPage = () => {
-  const { currentUser, loading, error, setCurrentUser } = useAuth();
+  const { currentUser, loading, error } = useAuth();
   const navigate = useNavigate();
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [authError, setAuthError] = useState(null);
+  const [initData, setInitData] = useState(null);
   const [isWebApp, setIsWebApp] = useState(false);
   
-  // Проверяем, что мы в Telegram Web App
+  // Проверяем, запущено ли приложение в Telegram Web App
   useEffect(() => {
-    const checkWebApp = () => {
-      if (window.Telegram?.WebApp) {
-        setIsWebApp(true);
-        // Расширяем WebApp на весь экран
-        window.Telegram.WebApp.expand();
-        // Готовим WebApp
-        window.Telegram.WebApp.ready();
-      }
-    };
-    
-    // Проверяем сразу и через небольшую задержку на случай если скрипт еще загружается
-    checkWebApp();
-    const timer = setTimeout(checkWebApp, 100);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  // Функция для автоматической авторизации через Telegram Web App
-  const authenticateWithTelegramWebApp = async () => {
-    try {
-      setIsAuthenticating(true);
-      setAuthError(null);
-      
-      // Проверяем, что мы в Telegram Web App
-      if (!window.Telegram?.WebApp) {
-        throw new Error('Приложение должно быть запущено в Telegram');
-      }
-      
+    if (window.Telegram && window.Telegram.WebApp) {
+      setIsWebApp(true);
       const webApp = window.Telegram.WebApp;
       
-      // Получаем данные пользователя из Telegram Web App
-      const initData = webApp.initData;
-      if (!initData) {
-        throw new Error('Не удалось получить данные пользователя из Telegram');
+      // Получаем initData
+      if (webApp.initData) {
+        setInitData(webApp.initData);
       }
       
-      // Парсим initData для получения user данных
-      const urlParams = new URLSearchParams(initData);
-      const userParam = urlParams.get('user');
-      
-      if (!userParam) {
-        throw new Error('Данные пользователя не найдены');
-      }
-      
-      const userData = JSON.parse(decodeURIComponent(userParam));
-      const telegramId = userData.id;
-      
-      console.log('Telegram User ID:', telegramId);
-      console.log('User Data:', userData);
-      
-      // Отправляем запрос на сервер для получения токена
-      const response = await fetch(`${api}/tg/telegram-webapp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          telegramId: telegramId,
-          initData: initData,
-          userData: userData
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Ошибка авторизации');
-      }
-      
-      const authData = await response.json();
-      
-      if (!authData.success) {
-        throw new Error(authData.message || 'Ошибка авторизации');
-      }
-      
-      const { token, user } = authData;
-      
-      // Сохраняем токен в localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Обновляем состояние аутентификации
-      setCurrentUser(user);
-      
-      // Перенаправляем на dashboard
-      navigate('/dashboard');
-      
-    } catch (error) {
-      console.error('Ошибка автоматической авторизации:', error);
-      setAuthError(error.message);
-    } finally {
-      setIsAuthenticating(false);
+      // Расширяем WebApp для лучшего отображения
+      webApp.expand();
     }
-  };
-  
-  // Проверяем токен в localStorage при загрузке
-  useEffect(() => {
-    const checkExistingAuth = async () => {
-      // Если пользователь уже авторизован, не проверяем заново
-      if (currentUser) {
-        return;
-      }
-      
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      
-      if (token && userData) {
-        try {
-          // Проверяем валидность токена
-          const response = await fetch(`${api}/auth/verify`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const user = JSON.parse(userData);
-            setCurrentUser(user);
-            navigate('/dashboard');
-            return;
-          } else {
-            // Токен невалидный, удаляем его
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-          }
-        } catch (error) {
-          console.error('Ошибка проверки токена:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
-      }
-      
-      // Если нет валидного токена и мы в Telegram Web App, пытаемся авторизоваться
-      if (isWebApp && window.Telegram?.WebApp?.initData) {
-        await authenticateWithTelegramWebApp();
-      }
-    };
-    
-    if (!loading) {
-      checkExistingAuth();
-    }
-  }, [currentUser, loading, navigate, setCurrentUser, isWebApp]);
+  }, []);
   
   // Перенаправляем пользователя, если он уже авторизован
   useEffect(() => {
@@ -241,7 +112,36 @@ const LoginPage = () => {
     }
   }, [currentUser, loading, navigate]);
   
-  if (loading || isAuthenticating) {
+  // Функция для парсинга initData
+  const parseInitData = (initDataString) => {
+    if (!initDataString) return null;
+    
+    try {
+      const params = new URLSearchParams(initDataString);
+      const result = {};
+      
+      for (const [key, value] of params.entries()) {
+        if (key === 'user' || key === 'chat' || key === 'receiver') {
+          try {
+            result[key] = JSON.parse(decodeURIComponent(value));
+          } catch (e) {
+            result[key] = value;
+          }
+        } else {
+          result[key] = value;
+        }
+      }
+      
+      return result;
+    } catch (e) {
+      console.error('Error parsing initData:', e);
+      return null;
+    }
+  };
+  
+  const parsedInitData = parseInitData(initData);
+  
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
         <Card className="w-full max-w-md">
@@ -262,52 +162,151 @@ const LoginPage = () => {
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Tizimga kirish</CardTitle>
-          <CardDescription className="text-center">
-            {isWebApp ? 
-              'Telegram orqali avtomatik avtorizatsiya...' : 
-              'Telegram hisobingiz orqali kiring'
-            }
-          </CardDescription>
-        </CardHeader>
-        
-        {(error || authError) && (
-          <div className="px-6 pb-4">
-            <Alert variant="destructive">
-              <AlertDescription>{error || authError}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-        
-        <CardContent className="flex justify-center pt-4">
-          {!isWebApp && <TelegramLoginButton />}
+      <div className="w-full max-w-2xl space-y-4">
+        {/* Основная карта входа */}
+        <Card className="w-full">
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-center gap-2">
+              <CardTitle className="text-2xl font-bold text-center">Tizimga kirish</CardTitle>
+              {isWebApp && <Badge variant="secondary">Telegram Web App</Badge>}
+            </div>
+            <CardDescription className="text-center">
+              Telegram hisobingiz orqali kiring
+            </CardDescription>
+          </CardHeader>
           
-          {isWebApp && (
-            <div className="text-center w-full">
-              <p className="text-sm text-muted-foreground mb-4">
-                Avtomatik avtorizatsiya jarayoni...
-              </p>
-              {authError && (
-                <button 
-                  onClick={authenticateWithTelegramWebApp}
-                  className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
-                  disabled={isAuthenticating}
-                >
-                  {isAuthenticating ? 'Yuklanmoqda...' : 'Qayta urinish'}
-                </button>
-              )}
+          {error && (
+            <div className="px-6">
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             </div>
           )}
-        </CardContent>
-        
-        <CardFooter>
-          <p className="text-center text-xs text-muted-foreground w-full">
-            Kirish tugmasini bosish orqali siz xizmatdan foydalanish qoidalariga rozilik bildirasiz
-          </p>
-        </CardFooter>
-      </Card>
+          
+          <CardContent className="flex justify-center pt-4">
+            <TelegramLoginButton />
+          </CardContent>
+          
+          <CardFooter>
+            <p className="text-center text-xs text-muted-foreground w-full">
+              Kirish tugmasini bosish orqali siz xizmatdan foydalanish qoidalariga rozilik bildirasiz
+            </p>
+          </CardFooter>
+        </Card>
+
+        {/* Карта с отображением initData для тестирования */}
+        {isWebApp && (
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle className="text-lg">Debug: Telegram Web App Data</CardTitle>
+              <CardDescription>
+                Эта информация отображается только для тестирования
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Статус Web App */}
+              <div>
+                <h4 className="font-medium mb-2">Web App Status:</h4>
+                <Badge variant="outline" className="text-green-600">
+                  ✓ Запущено в Telegram Web App
+                </Badge>
+              </div>
+              
+              <Separator />
+              
+              {/* Raw initData */}
+              {initData && (
+                <div>
+                  <h4 className="font-medium mb-2">Raw initData:</h4>
+                  <div className="bg-gray-50 p-3 rounded-md text-sm font-mono break-all">
+                    {initData}
+                  </div>
+                </div>
+              )}
+              
+              <Separator />
+              
+              {/* Parsed initData */}
+              {parsedInitData && (
+                <div>
+                  <h4 className="font-medium mb-2">Parsed initData:</h4>
+                  <div className="bg-gray-50 p-3 rounded-md">
+                    <pre className="text-sm overflow-auto">
+                      {JSON.stringify(parsedInitData, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+              
+              {/* Информация о пользователе */}
+              {parsedInitData?.user && (
+                <div>
+                  <h4 className="font-medium mb-2">User Info:</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="font-medium">ID:</span> {parsedInitData.user.id}
+                    </div>
+                    <div>
+                      <span className="font-medium">Username:</span> @{parsedInitData.user.username || 'N/A'}
+                    </div>
+                    <div>
+                      <span className="font-medium">First Name:</span> {parsedInitData.user.first_name}
+                    </div>
+                    <div>
+                      <span className="font-medium">Last Name:</span> {parsedInitData.user.last_name || 'N/A'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Language:</span> {parsedInitData.user.language_code}
+                    </div>
+                    <div>
+                      <span className="font-medium">Premium:</span> {parsedInitData.user.is_premium ? 'Yes' : 'No'}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Дополнительная информация */}
+              <div>
+                <h4 className="font-medium mb-2">Additional Info:</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {parsedInitData?.auth_date && (
+                    <div>
+                      <span className="font-medium">Auth Date:</span> {new Date(parsedInitData.auth_date * 1000).toLocaleString()}
+                    </div>
+                  )}
+                  {parsedInitData?.query_id && (
+                    <div>
+                      <span className="font-medium">Query ID:</span> {parsedInitData.query_id}
+                    </div>
+                  )}
+                  {parsedInitData?.hash && (
+                    <div className="col-span-2">
+                      <span className="font-medium">Hash:</span> 
+                      <div className="font-mono text-xs break-all mt-1">
+                        {parsedInitData.hash}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Информация для обычного браузера */}
+        {!isWebApp && (
+          <Card className="w-full">
+            <CardContent className="pt-6">
+              <Alert>
+                <AlertDescription>
+                  Приложение запущено в обычном браузере. 
+                  Для тестирования Telegram Web App откройте приложение через бота в Telegram.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
