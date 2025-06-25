@@ -91,18 +91,68 @@ const LoginPage = () => {
   
   // Проверяем, запущено ли приложение в Telegram Web App
   useEffect(() => {
-    if (window.Telegram && window.Telegram.WebApp) {
-      setIsWebApp(true);
-      const webApp = window.Telegram.WebApp;
-      
-      // Получаем initData
-      if (webApp.initData) {
-        setInitData(webApp.initData);
+    const checkTelegramWebApp = () => {
+      // Проверяем различные способы определения Telegram Web App
+      const isTelegramWebApp = 
+        // Основной способ - проверка window.Telegram.WebApp
+        (window.Telegram && window.Telegram.WebApp) ||
+        // Проверка через user agent
+        /TelegramWebApp/.test(navigator.userAgent) ||
+        // Проверка через параметры URL
+        window.location.search.includes('tgWebAppData') ||
+        // Проверка через referrer
+        document.referrer.includes('t.me') ||
+        // Проверка через window.TelegramWebviewProxy (для некоторых версий)
+        window.TelegramWebviewProxy;
+
+      console.log('Checking Telegram Web App:', {
+        'window.Telegram': !!window.Telegram,
+        'window.Telegram.WebApp': !!(window.Telegram && window.Telegram.WebApp),
+        'userAgent': navigator.userAgent,
+        'location.search': window.location.search,
+        'referrer': document.referrer,
+        'TelegramWebviewProxy': !!window.TelegramWebviewProxy,
+        'isTelegramWebApp': isTelegramWebApp
+      });
+
+      if (isTelegramWebApp) {
+        setIsWebApp(true);
+        
+        if (window.Telegram && window.Telegram.WebApp) {
+          const webApp = window.Telegram.WebApp;
+          
+          // Получаем initData
+          if (webApp.initData) {
+            setInitData(webApp.initData);
+            console.log('InitData found:', webApp.initData);
+          } else {
+            console.log('No initData available');
+          }
+          
+          // Расширяем WebApp для лучшего отображения
+          webApp.expand();
+          
+          // Устанавливаем готовность приложения
+          webApp.ready();
+        } else {
+          // Если WebApp API недоступен, но мы в Telegram, пытаемся получить данные из URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const tgWebAppData = urlParams.get('tgWebAppData');
+          if (tgWebAppData) {
+            setInitData(decodeURIComponent(tgWebAppData));
+            console.log('InitData from URL:', tgWebAppData);
+          }
+        }
       }
-      
-      // Расширяем WebApp для лучшего отображения
-      webApp.expand();
-    }
+    };
+
+    // Проверяем сразу
+    checkTelegramWebApp();
+    
+    // Также проверяем через небольшую задержку, на случай если API загружается асинхронно
+    const timeoutId = setTimeout(checkTelegramWebApp, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
   
   // Перенаправляем пользователя, если он уже авторизован
@@ -204,6 +254,21 @@ const LoginPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Debug информация */}
+              <div>
+                <h4 className="font-medium mb-2">Debug Info:</h4>
+                <div className="bg-gray-50 p-3 rounded-md text-xs space-y-1">
+                  <div><strong>User Agent:</strong> {navigator.userAgent}</div>
+                  <div><strong>Referrer:</strong> {document.referrer || 'N/A'}</div>
+                  <div><strong>URL Search:</strong> {window.location.search || 'N/A'}</div>
+                  <div><strong>Telegram Object:</strong> {window.Telegram ? 'Available' : 'Not Available'}</div>
+                  <div><strong>WebApp Object:</strong> {(window.Telegram && window.Telegram.WebApp) ? 'Available' : 'Not Available'}</div>
+                  <div><strong>TelegramWebviewProxy:</strong> {window.TelegramWebviewProxy ? 'Available' : 'Not Available'}</div>
+                </div>
+              </div>
+              
+              <Separator />
+              
               {/* Статус Web App */}
               <div>
                 <h4 className="font-medium mb-2">Web App Status:</h4>
