@@ -163,20 +163,20 @@ const isPremium = currentUser?.isPremium || false;
 let canSendMessage = true;
 
 // Если мужчина общается с женщиной — смотрим ограничения
-if (isMan && isChatWithWoman) {
-  canSendMessage = true; // Мужик пишет женщине — всегда можно
-}
+// if (isMan && isChatWithWoman) {
+//   canSendMessage = true; // Мужик пишет женщине — всегда можно
+// }
 
-// Если женщина общается с мужчиной — смотрим премиум
-if (isWoman && isChatWithMan) {
-  canSendMessage = true; // Женщина пишет мужчине — всегда можно
-}
+// // Если женщина общается с мужчиной — смотрим премиум
+// if (isWoman && isChatWithMan) {
+//   canSendMessage = true; // Женщина пишет мужчине — всегда можно
+// }
 
-// Если мужчина отвечает женщине — проверяем премиум
-if (isMan && isChatWithWoman && !isPremium) {
-  // Здесь твое ключевое условие:
-  canSendMessage = false;
-}
+// // Если мужчина отвечает женщине — проверяем премиум
+// if (isMan && isChatWithWoman && !isPremium) {
+//   // Здесь твое ключевое условие:
+//   canSendMessage = false;
+// }
 
 
   return (
