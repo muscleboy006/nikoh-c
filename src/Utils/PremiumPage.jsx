@@ -18,16 +18,16 @@ const PremiumPage = () => {
     {
       id: '2 weeks',
       duration: '2 hafta',
-      price: '19 000',
+      price: '59 000',
       popular: false,
-      badge: null
+      badge: 'ARZON'
     },
     {
       id: '1months',
       duration: '1 oy',
-      price: '29 000',
+      price: '79 000',
       popular: true,
-      badge: 'MASHHUR'  
+      badge: 'FOYDALI'  
     }
   ];
 
