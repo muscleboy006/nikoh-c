@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -128,13 +128,12 @@ const ProfileCard = React.memo(({ profile, navigate, savedAnketas, toggleSave, s
               <Heart className="w-5 h-5 text-gray-400 transition-all duration-200" />
             )}
           </Button>
-          {console.log(currentUser?.profile?.gender, profile?.profile?.gender)}
           {currentUser?._id?.toString() !== profile?._id?.toString() && currentUser?.profile?.gender !== profile?.profile?.gender ? (
             <Button
               variant="ghost"
               size="icon"
               onClick={(e) => {
-                e.stopPropagation(); // Важно: предотвращаем всплытие события
+                e.stopPropagation();
                 startChat(profile?._id?.toString());
               }}
               className="hover:bg-white/50"
@@ -151,10 +150,13 @@ const ProfileCard = React.memo(({ profile, navigate, savedAnketas, toggleSave, s
 const Dashboard = () => {
   const { currentUser, loading } = useAuth();
   const navigate = useNavigate();
-  const { access, premiumEndsAt, isLoading: accessLoading, isPremium, profileComplete, chatLimitReached } = useAccessStatus(); // Destructure all needed from useAccessStatus
+  const location = useLocation();
+  const { access, premiumEndsAt, isLoading: accessLoading, isPremium, profileComplete, chatLimitReached } = useAccessStatus();
+  
+  // Initialize currentPage from URL query parameter
+  const initialPage = parseInt(new URLSearchParams(location.search).get('page')) || 1;
   const [profiles, setProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalProfiles, setTotalProfiles] = useState(0);
@@ -169,8 +171,10 @@ const Dashboard = () => {
   });
   const [showHijabFilter, setShowHijabFilter] = useState(false);
   const [savedAnketas, setSavedAnketas] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [totalPages, setTotalPages] = useState(1);
+  const profileContainerRef = useRef(null);
+  const isInitialLoad = useRef(true);
 
   const cities = useMemo(() => [
     'Toshkent', 'Toshkent vil', 'Sirdaryo', 'Jizzax', 'Samarqand', 'Andijon',
@@ -200,7 +204,7 @@ const Dashboard = () => {
 
   const fetchProfiles = useCallback(async (page = 1) => {
     try {
-      if (page === 1) setIsLoading(true);
+      setIsLoading(true);
 
       const token = localStorage.getItem('token');
       const params = {
@@ -221,49 +225,52 @@ const Dashboard = () => {
 
       const response = await axios.get(`${api}/tg/search`, config);
       const data = response.data.data || response.data;
-      console.log(response.data);
-      
 
-      if (page === 1) {
-        setProfiles(Array.isArray(data) ? data : []);
-      } else {
-        setProfiles(prev => {
-          const map = new Map(prev.map(p => [p._id, p]));
-          (Array.isArray(data) ? data : []).forEach(item => map.set(item._id, item));
-          return Array.from(map.values());
-        });
-      }
-
-      const receivedCount = Array.isArray(data) ? data.length : 0;
-      setHasMore(receivedCount === PAGE_LIMIT);
-      setTotalProfiles(response.data.total || (page === 1 ? receivedCount : totalProfiles + receivedCount));
+      setProfiles(Array.isArray(data) ? data : []);
+      const total = response.data.total || 0;
+      setTotalProfiles(total);
+      setTotalPages(Math.ceil(total / PAGE_LIMIT));
     } catch (error) {
       console.error('Error fetching profiles:', error);
       toast.error('Profillarni yuklashda xatolik yuz berdi.');
-      if (page === 1) setProfiles([]);
-      setHasMore(false);
+      setProfiles([]);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
     }
-  }, [filters, totalProfiles]); // totalProfiles is a dependency for setTotalProfiles inside
+  }, [filters]);
 
-  const loadMore = useCallback(() => {
-    if (hasMore && !isLoadingMore) {
-      const nextPage = currentPage + 1;
-      setIsLoadingMore(true);
-      fetchProfiles(nextPage);
-      setCurrentPage(nextPage);
-    }
-  }, [hasMore, isLoadingMore, currentPage, fetchProfiles]);
-
+  // Load initial data and reset page to 1 on filter change or user load
   useEffect(() => {
     if (!loading && currentUser) {
-      setCurrentPage(1);
-      fetchProfiles(1, true);
+      const params = new URLSearchParams(location.search);
+      const pageFromUrl = parseInt(params.get('page')) || 1;
+      setCurrentPage(pageFromUrl);
+      fetchProfiles(pageFromUrl);
       fetchSavedAnketas();
+      isInitialLoad.current = true; // Mark as initial load
     }
-  }, [loading, filters, currentUser, fetchProfiles, fetchSavedAnketas]);
+  }, [loading, currentUser, location.search, fetchSavedAnketas]);
+
+  // Update URL and handle scrolling on page change
+  useEffect(() => {
+    if (!loading && currentUser) {
+      // Update URL with current page
+      const params = new URLSearchParams(location.search);
+      params.set('page', currentPage);
+      navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+
+      // Scroll to top of profile container
+      if (profileContainerRef.current) {
+        profileContainerRef.current.scrollIntoView({
+          behavior: isInitialLoad.current ? 'auto' : 'smooth',
+        });
+      } else {
+        window.scrollTo({ top: 0, behavior: isInitialLoad.current ? 'auto' : 'smooth' });
+      }
+      isInitialLoad.current = false; // Mark initial load as complete
+    }
+  }, [currentPage, loading, currentUser, navigate, location.pathname]);
 
   const startChat = useCallback(async (userBId) => {
     try {
@@ -292,8 +299,7 @@ const Dashboard = () => {
         userA: currentUser._id,
         userB: userBId
       }, config);
-      console.log(response);
-      const chatId = response.data._id
+      const chatId = response.data._id;
       if (response.data && chatId) {
         navigate(`/chat/${chatId}`);
       } else {
@@ -310,7 +316,6 @@ const Dashboard = () => {
       }
     }
   }, [currentUser?._id, navigate, chatLimitReached, isPremium, profileComplete]);
-
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters((prev) => {
@@ -356,7 +361,6 @@ const Dashboard = () => {
     });
   }, [profiles, searchQuery]);
 
-
   const toggleSave = useCallback(async (anketaId, event) => {
     event.stopPropagation();
 
@@ -389,7 +393,6 @@ const Dashboard = () => {
     }
   }, [currentUser?._id, savedAnketas]);
 
-  // Показываем загрузку только если данные еще не загружены
   if (loading || (!currentUser && !loading)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
@@ -443,7 +446,7 @@ const Dashboard = () => {
               >
                 <Filter className="w-4 h-4 mr-2" />
                 Filterlar
-                {getActiveFiltersCount > 0 && ( // getActiveFiltersCount is a memoized value, not a function anymore
+                {getActiveFiltersCount > 0 && (
                   <Badge className="absolute -top-2 -right-2 w-5 h-5 p-0 text-xs bg-red-500">
                     {getActiveFiltersCount}
                   </Badge>
@@ -591,7 +594,6 @@ const Dashboard = () => {
           <div className="w-full max-w-lg -mt-5 mb-6">
             <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 shadow-sm">
               <div className="flex items-start space-x-3">
-                {/* Иконка */}
                 <div className="flex-shrink-0">
                   <div className="w-6 h-6 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full flex items-center justify-center">
                     <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -599,28 +601,18 @@ const Dashboard = () => {
                     </svg>
                   </div>
                 </div>
-
-                {/* Контент */}
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium text-amber-800 mb-1">
                     <Link to='/premium' className='underline text-blue-400'>Premium</Link> muddat
                   </h3>
-                  <p className={`text-xs leading-relaxed ${
-                    isPremiumEnded
-                      ? "text-red-700 font-medium"
-                      : "text-amber-700"
-                  }`}>
+                  <p className={`text-xs leading-relaxed ${isPremiumEnded ? "text-red-700 font-medium" : "text-amber-700"}`}>
                     {isPremiumEnded
                       ? `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugagan`
                       : `Sizning premium muddatingiz ${formatPremiumEndDate(premiumEndsAt)} da tugaydi`}
                   </p>
                 </div>
-
-                {/* Статус индикатор */}
                 <div className="flex-shrink-0">
-                  <div className={`w-2 h-2 rounded-full ${
-                    isPremiumEnded ? 'bg-red-400' : 'bg-amber-400'
-                  }`} />
+                  <div className={`w-2 h-2 rounded-full ${isPremiumEnded ? 'bg-red-400' : 'bg-amber-400'}`} />
                 </div>
               </div>
             </div>
@@ -628,11 +620,11 @@ const Dashboard = () => {
         )}
 
         {/* Results */}
-        <div className="space-y-4">
+        <div ref={profileContainerRef} className="space-y-4">
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array(6).fill().map((_, index) => (
-                <Card key={index} className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+                <Card key={index} className="shadow-lg border-0 bg-white/80 backdrop-blur-sm h-[200px]">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4 mb-4">
                       <Skeleton className="h-16 w-16 rounded-full" />
@@ -683,25 +675,39 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Load More Button */}
-        {!isLoading && hasMore && (
-          <div className="text-center mt-8">
+        {/* Pagination Controls */}
+        {!isLoading && totalPages > 1 && (
+          <div className="flex justify-center items-center mt-8 space-x-2">
             <Button
-              onClick={loadMore}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               variant="outline"
-              size="lg"
-              disabled={isLoadingMore}
+              disabled={currentPage === 1}
               className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white/90"
             >
-              {isLoadingMore ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                  Yuklanmoqda...
-                </>
-              ) : (
-                'Ko\'proq yuklash'
-              )}
+              Oldingi
             </Button>
+            
+            <Button
+              variant="default"
+              size="sm"
+              className="w-10 h-10 bg-blue-600 text-white"
+              disabled
+            >
+              {currentPage}
+            </Button>
+            
+            <Button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              variant="outline"
+              disabled={currentPage === totalPages}
+              className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white/90"
+            >
+              Keyingi
+            </Button>
+            
+            <div className="ml-4 text-sm text-gray-600">
+              Sahifa {currentPage} / {totalPages}
+            </div>
           </div>
         )}
       </div>
