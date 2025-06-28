@@ -276,11 +276,13 @@ const Dashboard = () => {
     try {
       if (!profileComplete) {
         toast.error("Profil to'liq to'ldirilmagan.");
+        navigate('/profile')
         return;
       }
 
       if (chatLimitReached && !isPremium) {
         toast.error("Chatlar limiti tugagan. Premium kerak.");
+        navigate('/premium')
         return;
       }
 
