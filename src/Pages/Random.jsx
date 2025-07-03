@@ -724,12 +724,7 @@ const Random = () => {
                   </div>
                 )}
               </div>
-                              
-                {!hasMore && currentIndex < profiles.length && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    Barcha profillar yuklandi
-                  </div>
-                )}
+                          
             </>
           )}
         </div>
