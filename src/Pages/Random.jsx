@@ -86,70 +86,53 @@ const TinderCard = React.memo(({
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.7}
       >
-        {/* Blur background */}
-        <div className="relative w-full h-full">
-          {profile.photo_url && (
-            <img
-              src={api+profile.photo_url}
-              alt="blurred bg"
-              className="absolute inset-0 w-full h-full object-cover blur-lg scale-110"
-            />
-          )}
+        {/* Background image */}
+        {profile.photo_url && (
+          <img
+            src={api + profile.photo_url}
+            alt="Profile"
+            className="absolute inset-0 w-full h-full object-cover z-0"
+          />
+        )}
 
-          <div className="relative mt-7 z-10 w-full h-full flex items-center justify-center">
-            {profile.photo_url ? (
-              <img
-                src={api+profile.photo_url}
-                alt="Profile"
-                className="h-[100%] max-h-full object-contain aspect-[9/16]"
-                style={{ maxWidth: '100%' }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100">
-                <span className="text-4xl font-bold text-blue-700">
-                  {getInitials(profile.first_name, profile.last_name, profile.username)}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-10"></div>
 
         {/* Overlay content */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent text-white p-6 flex flex-col justify-between">
-          {/* Top-left info */}
-          <div className='-mt-5'>
+        <div className="relative z-20 h-full w-full flex flex-col justify-between p-6 text-white">
+          {/* Top info */}
+          <div className="-mt-4">
             <h2 className="text-3xl font-bold">
               {profile.first_name}, {calculateAge(profile.profile?.birthDate)}
             </h2>
             <p className="flex items-center gap-1 mt-1 text-white/90">
               <MapPin className="w-4 h-4" />
-              {profile.profile?.city || 'Shahar ko\'rsatilmagan'}
+              {profile.profile?.city || "Shahar ko'rsatilmagan"}
             </p>
 
             <div className="flex items-center gap-2 mt-3 text-sm text-white/80">
               <User className="w-4 h-4" />
-              {getGenderIcon(profile.profile?.gender)} {profile.profile?.gender || 'Jins ko\'rsatilmagan'}
+              {getGenderIcon(profile.profile?.gender)}{" "}
+              {profile.profile?.gender || "Jins ko'rsatilmagan"}
             </div>
 
             <div className="flex items-center gap-2 mt-1 text-sm text-white/80">
               <Moon className="w-4 h-4" />
-              Holati: {profile.profile?.maritalStatus || 'Ko\'rsatilmagan'}
+              Holati: {profile.profile?.maritalStatus || "Ko'rsatilmagan"}
             </div>
 
             {profile.profile?.bio && (
-              <p className="mt-3 text-sm text-white/70">
-                {profile.profile.bio}
-              </p>
+              <p className="mt-3 text-sm text-white/70">{profile.profile.bio}</p>
             )}
           </div>
 
-          {/* Bottom action buttons */}
+          {/* Bottom buttons */}
           <div className="flex justify-center gap-4 flex-wrap">
             <Button
               variant="outline"
               size="icon"
               className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/80 backdrop-blur-md hover:bg-red-100"
-              onClick={() => onSwipe('left', profile._id)}
+              onClick={() => onSwipe("left", profile._id)}
             >
               <X className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
             </Button>
@@ -179,7 +162,7 @@ const TinderCard = React.memo(({
               variant="outline"
               size="icon"
               className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/80 backdrop-blur-md hover:bg-green-100"
-              onClick={() => onSwipe('right', profile._id)}
+              onClick={() => onSwipe("right", profile._id)}
             >
               <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
             </Button>
