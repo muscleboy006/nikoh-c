@@ -32,6 +32,7 @@ import api from '../Utils/api';
 import { useAccessStatus } from '@/Utils/useAccessStatus';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSwipeable } from 'react-swipeable';
+import PremiumModal from "./PremiumModal";
 
 // Memoized TinderCard component
 const TinderCard = React.memo(({
@@ -166,7 +167,7 @@ const Random = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { access, premiumEndsAt, isLoading: accessLoading, isPremium, profileComplete, chatLimitReached, restrictions } = useAccessStatus();
-  
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [profiles, setProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -312,14 +313,7 @@ const Random = () => {
         navigate("/profile");
         return;
       }
-  
-      // 🔐 Проверка лимита доступа к чату
-      if (!canStartChat) {
-        const reason = restrictions?.chatAccess || "Chatni boshlash uchun Premium kerak.";
-        toast.error(reason);
-        navigate("/premium");
-        return;
-      }
+
   
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const response = await axios.post(`${api}/chat`, {
@@ -340,7 +334,7 @@ const Random = () => {
       if (error.response?.status === 401) {
         toast.error("Avtorizatsiya muammosi. Qayta kiring.");
       } else if (error.response?.status === 403) {
-        toast.error(error.response?.data.message);
+        setShowPremiumModal(true);
       } else {
         toast.error("Chatni boshlashda xatolik yuz berdi.");
       }
@@ -453,6 +447,7 @@ const Random = () => {
   return (
     <div className="min-h-[80vh] bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Toaster position="top-right" richColors />
+      <PremiumModal open={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
 
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
