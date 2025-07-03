@@ -290,7 +290,7 @@ const Random = () => {
 
   const startChat = useCallback(async (userBId) => {
     try {
-      if (isLoading) {
+      if (accessLoading) {
         toast.info("Yuklanmoqda... Iltimos, biroz kuting.");
         return;
       }      
