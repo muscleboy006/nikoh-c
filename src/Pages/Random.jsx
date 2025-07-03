@@ -79,7 +79,7 @@ const TinderCard = React.memo(({
   }, []);
 
   return (
-    <div {...handlers} className="relative w-full h-[calc(100vh-190px)] rounded-3xl overflow-hidden shadow-xl">
+    <div {...handlers} className="relative w-full h-[calc(100vh-120px)] rounded-3xl overflow-hidden shadow-xl">
       <motion.div
         className="absolute inset-0"
         drag="x"

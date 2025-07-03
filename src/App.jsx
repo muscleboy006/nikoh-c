@@ -80,7 +80,7 @@ function App() {
           } />
 
           <Route element={<ProtectedRoute />}>
-          <Route element={<MainLayout />}>
+          {/* <Route element={<MainLayout />}> */}
             <Route path="/dashboard" element={<Random />} />
             {/* <Route path='/random' element={<Random />} />  */}
             <Route path="/anketa/:id" element={<ViewProfile />} />
@@ -90,7 +90,7 @@ function App() {
               <Route path="/saved" element={<Saved />} />
               <Route path="/premium" element={<PremiumPage />} />
             </Route>
-          </Route>
+          {/* </Route> */}
           {/* Catch all other routes and redirect */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
