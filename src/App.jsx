@@ -14,6 +14,7 @@ import PremiumPage from './Utils/PremiumPage';
 import Saved from './Pages/Saved';
 import ViewProfile from './Pages/ViewProfile';
 import ChatPage from './Pages/ChatPage';
+import Random from './Pages/Random';
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -78,9 +79,10 @@ function App() {
             <LoginPage />
           } />
 
+          <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
-            <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Random />} />
+            {/* <Route path='/random' element={<Random />} />  */}
             <Route path="/anketa/:id" element={<ViewProfile />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/chat" element={<Chat />} />
