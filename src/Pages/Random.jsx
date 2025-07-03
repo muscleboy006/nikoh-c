@@ -127,7 +127,7 @@ const TinderCard = React.memo(({
           </div>
 
           {/* Bottom buttons */}
-          <div className="flex justify-center gap-4 flex-wrap">
+          {/* <div className="flex justify-center gap-4 flex-wrap">
             <Button
               variant="outline"
               size="icon"
@@ -166,7 +166,50 @@ const TinderCard = React.memo(({
             >
               <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
             </Button>
-          </div>
+          </div> */}
+          {/* Bottom action buttons */}
+<div className="flex justify-center gap-6 flex-wrap">
+  {/* ❌ Dislike */}
+  <button
+    onClick={() => onSwipe('left', profile._id)}
+    className="text-[40px] sm:text-[48px] hover:scale-110 transition-transform"
+  >
+    ❌
+  </button>
+
+  {/* 🔁 Undo */}
+  <button
+    onClick={undoRemove}
+    disabled={removedProfiles.length === 0}
+    className="text-[36px] sm:text-[44px] hover:scale-110 transition-transform"
+  >
+    🔙
+  </button>
+
+  {/* 💬 Message */}
+  {canStartChat && (
+    <button
+      onClick={() => startChat(profile._id)}
+      className="text-[38px] sm:text-[46px] hover:scale-110 transition-transform"
+    >
+      💬
+    </button>
+  )}
+
+  {/* ❤️ Like */}
+  <button
+    onClick={() => onSwipe('right', profile._id)}
+    className="text-[42px] sm:text-[50px] hover:scale-110 transition-transform"
+  >
+    ❤️
+  </button>
+
+  {/* 🔥 Boost (если планируешь) */}
+  {/* <button className="text-[40px] sm:text-[48px] hover:scale-110 transition-transform">
+    🔥
+  </button> */}
+</div>
+
         </div>
       </motion.div>
     </div>
