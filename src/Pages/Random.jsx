@@ -290,6 +290,11 @@ const Random = () => {
 
   const startChat = useCallback(async (userBId) => {
     try {
+      if (isLoading) {
+        toast.info("Yuklanmoqda... Iltimos, biroz kuting.");
+        return;
+      }      
+
       if (!currentUser?._id) {
         toast.error("Avval tizimga kiring.");
         return;
@@ -346,7 +351,6 @@ const Random = () => {
     profileComplete,
     restrictions,
   ]);
-  
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters((prev) => {
