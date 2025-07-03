@@ -54,15 +54,6 @@ const TinderCard = React.memo(({
     delta: 10
   });
 
-  const getInitials = useCallback((firstName, lastName, username) => {
-    if (firstName && lastName) {
-      return `${firstName[0]}${lastName[0]}`.toUpperCase();
-    } else if (username) {
-      return username[0].toUpperCase();
-    }
-    return 'U';
-  }, []);
-
   const calculateAge = useCallback((birthDate) => {
     if (!birthDate) return '—';
     try {
@@ -126,89 +117,43 @@ const TinderCard = React.memo(({
             )}
           </div>
 
-          {/* Bottom buttons */}
-          {/* <div className="flex justify-center gap-4 flex-wrap">
-            <Button
-              variant="outline"
-              size="icon"
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/80 backdrop-blur-md hover:bg-red-100"
-              onClick={() => onSwipe("left", profile._id)}
+          {/* Bottom action buttons */}
+          <div className="flex justify-center gap-6 flex-wrap">
+            {/* ❌ Dislike */}
+            {/* <button
+              onClick={() => onSwipe('left', profile._id)}
+              className="text-[40px] sm:text-[48px] hover:scale-110 transition-transform"
             >
-              <X className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
-            </Button>
+              ❌
+            </button> */}
 
-            <Button
-              variant="outline"
-              size="icon"
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/80 backdrop-blur-md hover:bg-gray-100"
+            {/* 🔁 Undo */}
+            <button
               onClick={undoRemove}
               disabled={removedProfiles.length === 0}
+              className="text-[36px] sm:text-[44px] hover:scale-110 transition-transform"
             >
-              <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-            </Button>
+              🔙
+            </button>
 
+            {/* 💬 Message */}
             {canStartChat && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/80 backdrop-blur-md hover:bg-blue-100"
+              <button
                 onClick={() => startChat(profile._id)}
+                className="text-[38px] sm:text-[46px] hover:scale-110 transition-transform"
               >
-                <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-              </Button>
+                💬
+              </button>
             )}
 
-            <Button
-              variant="outline"
-              size="icon"
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/80 backdrop-blur-md hover:bg-green-100"
-              onClick={() => onSwipe("right", profile._id)}
+            {/* ❤️ Like */}
+            <button
+              onClick={() => onSwipe('right', profile._id)}
+              className="text-[42px] sm:text-[50px] hover:scale-110 transition-transform"
             >
-              <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
-            </Button>
-          </div> */}
-          {/* Bottom action buttons */}
-<div className="flex justify-center gap-6 flex-wrap">
-  {/* ❌ Dislike */}
-  <button
-    onClick={() => onSwipe('left', profile._id)}
-    className="text-[40px] sm:text-[48px] hover:scale-110 transition-transform"
-  >
-    ❌
-  </button>
-
-  {/* 🔁 Undo */}
-  <button
-    onClick={undoRemove}
-    disabled={removedProfiles.length === 0}
-    className="text-[36px] sm:text-[44px] hover:scale-110 transition-transform"
-  >
-    🔙
-  </button>
-
-  {/* 💬 Message */}
-  {canStartChat && (
-    <button
-      onClick={() => startChat(profile._id)}
-      className="text-[38px] sm:text-[46px] hover:scale-110 transition-transform"
-    >
-      💬
-    </button>
-  )}
-
-  {/* ❤️ Like */}
-  <button
-    onClick={() => onSwipe('right', profile._id)}
-    className="text-[42px] sm:text-[50px] hover:scale-110 transition-transform"
-  >
-    ❤️
-  </button>
-
-  {/* 🔥 Boost (если планируешь) */}
-  {/* <button className="text-[40px] sm:text-[48px] hover:scale-110 transition-transform">
-    🔥
-  </button> */}
-</div>
+              ❤️
+            </button>
+          </div>
 
         </div>
       </motion.div>
@@ -220,7 +165,7 @@ const Random = () => {
   const { currentUser, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { access, premiumEndsAt, isLoading: accessLoading, isPremium, profileComplete, chatLimitReached } = useAccessStatus();
+  const { access, premiumEndsAt, isLoading: accessLoading, isPremium, profileComplete, chatLimitReached, restrictions } = useAccessStatus();
   
   const [profiles, setProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -345,50 +290,63 @@ const Random = () => {
 
   const startChat = useCallback(async (userBId) => {
     try {
-      if (!profileComplete) {
-        toast.error("Profil to'liq to'ldirilmagan.");
-        navigate('/profile')
-        return;
-      }
-
-      if (!isPremium) {
-        toast.error("Chatlar limiti tugagan. Premium kerak.");
-        navigate('/premium')
-        return;
-      }
-
       if (!currentUser?._id) {
-        toast.error('Avval tizimga kiring.');
+        toast.error("Avval tizimga kiring.");
         return;
       }
+  
       const token = localStorage.getItem('token');
       if (!token) {
-        toast.error('Avtorizatsiya token topilmadi.');
+        toast.error("Avtorizatsiya token topilmadi.");
         return;
       }
-
+  
+      // 🔐 Проверка профиля
+      if (!profileComplete) {
+        toast.error("Profil to‘liq to‘ldirilmagan.");
+        navigate("/profile");
+        return;
+      }
+  
+      // 🔐 Проверка лимита доступа к чату
+      if (!canStartChat) {
+        const reason = restrictions?.chatAccess || "Chatni boshlash uchun Premium kerak.";
+        toast.error(reason);
+        navigate("/premium");
+        return;
+      }
+  
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const response = await axios.post(`${api}/chat`, {
         userA: currentUser._id,
         userB: userBId
       }, config);
-      const chatId = response.data._id;
-      if (response.data && chatId) {
+  
+      const chatId = response.data?._id;
+      if (chatId) {
         navigate(`/chat/${chatId}`);
       } else {
-        toast.error('Chat ID olinmadi.');
+        toast.error("Chat ID olinmadi.");
       }
+  
     } catch (error) {
-      console.error('Error starting chat:', error);
+      console.error("Error starting chat:", error);
+  
       if (error.response?.status === 401) {
-        toast.error('Avtorizatsiya muammosi. Qayta kiring.');
+        toast.error("Avtorizatsiya muammosi. Qayta kiring.");
       } else if (error.response?.status === 403) {
-        toast.error('Chatni boshlash uchun ruxsat yo\'q.');
+        toast.error(error.response?.data.message);
       } else {
-        toast.error('Chatni boshlashda xatolik yuz berdi.');
+        toast.error("Chatni boshlashda xatolik yuz berdi.");
       }
     }
-  }, [currentUser?._id, navigate, chatLimitReached, isPremium, profileComplete]);
+  }, [
+    currentUser?._id,
+    navigate,
+    profileComplete,
+    restrictions,
+  ]);
+  
 
   const handleFilterChange = useCallback((key, value) => {
     setFilters((prev) => {
@@ -458,10 +416,6 @@ const Random = () => {
   // Handle swipe actions
   const handleSwipe = (direction, profileId) => {
     setDirection(direction);
-    
-    if (direction === 'right') {
-      toggleSave(profileId);
-    }
     
     setRemovedProfiles([...removedProfiles, profileId]);
     setCurrentIndex(prev => prev + 1);

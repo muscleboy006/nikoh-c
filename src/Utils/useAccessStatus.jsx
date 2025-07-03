@@ -36,7 +36,7 @@ export const useAccessStatus = () => {
         setChatLimitReached(data.chatLimitReached || false);
         setCanStartChat(data.canStartChat || false);
         setChatCount(data.chatCount || 0);
-        setChatLimit(data.chatLimit || 15);
+        setChatLimit(data.chatLimit || 10);
         setRestrictions(data.restrictions || {});
         setError(null);
 

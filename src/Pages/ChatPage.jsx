@@ -111,7 +111,7 @@ const ChatPage = () => {
     const senderId = currentUser._id;
     if (!newMessage.trim()) return;
     if (newMessage.length > 1000) {
-      alert('Xabar 1000 ta belgidan oshmasligi kerak');
+      toast.error('Xabar 1000 ta belgidan oshmasligi kerak')
       return;
     }
 
@@ -129,7 +129,7 @@ const ChatPage = () => {
     } catch (error) {
       console.error('Xabar yuborishda xato:', error);
       if (error.response?.data?.message) {
-        alert(error.response.data.message);
+        toast.error(error.response.data.message)
       }
     }
   };
@@ -162,25 +162,8 @@ const isPremium = currentUser?.isPremium || false;
 
 let canSendMessage = true;
 
-// Если мужчина общается с женщиной — смотрим ограничения
-// if (isMan && isChatWithWoman) {
-//   canSendMessage = true; // Мужик пишет женщине — всегда можно
-// }
-
-// // Если женщина общается с мужчиной — смотрим премиум
-// if (isWoman && isChatWithMan) {
-//   canSendMessage = true; // Женщина пишет мужчине — всегда можно
-// }
-
-// // Если мужчина отвечает женщине — проверяем премиум
-// if (isMan && isChatWithWoman && !isPremium) {
-//   // Здесь твое ключевое условие:
-//   canSendMessage = false;
-// }
-
-
   return (
-    <div className="flex flex-col h-[90vh] bg-gray-50">
+    <div className="flex flex-col h-[100vh] bg-gray-50">
       <Toaster richColors position="top-center" />
       {/* Suhbat sarlavhasi */}
       <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm">
