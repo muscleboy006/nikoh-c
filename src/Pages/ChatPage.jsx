@@ -210,20 +210,14 @@ let canSendMessage = true;
       {/* Xabarlar konteyneri */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {/* Zakreplangan xabar */}
+          {currentUser?.profile?.gender == "Erkak" ?
         <div className="sticky top-0 z-10 bg-blue-100 border border-blue-300 rounded-lg p-3 shadow-sm flex items-center space-x-2">
           <Pin className="h-4 w-4 text-blue-500 flex-shrink-0" />
           <p className="text-xs text-gray-700">
-            Ushbu suhbatda 50 ta xabar limiti bor. Davom ettirish uchun{' '}
-            <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-              Instagram
-            </a>{' '}
-            yoki{' '}
-            <a href="https://t.me" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-              Telegram
-            </a>{' '}
-            ga o‘ting.
+            Ushbu suhbatda 1 ta xabar limiti bor. Davom ettirish uchun premium oling.
           </p>
         </div>
+        : null}
 
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
