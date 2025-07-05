@@ -215,9 +215,16 @@ let canSendMessage = true;
           <Pin className="h-4 w-4 text-blue-500 flex-shrink-0" />
           <p className="text-xs text-gray-700">
             Ushbu suhbatda 1 ta xabar limiti bor. Davom ettirish uchun premium oling.
+            <p className='text-red-700'>(saytdan g'araz maqsadlarda foydalanmang, barcha yozishmalar kuzatiladi!)</p>
           </p>
         </div>
-        : null}
+        : <div className="sticky top-0 z-10 bg-blue-100 border border-blue-300 rounded-lg p-3 shadow-sm flex items-center space-x-2">
+        <Pin className="h-4 w-4 text-blue-500 flex-shrink-0" />
+        <p className="text-xs text-red-700">
+          Ehtiyot boling aldanib qolmang, nikohgacha hech narsaga rozi bolmang!
+          Soxta vadalarga ishonmang, barcha yozishmalar kuzatiladi!
+        </p>
+      </div>}
 
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
