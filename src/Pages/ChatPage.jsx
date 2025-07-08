@@ -9,9 +9,12 @@ import { useAuth } from '@/AuthContext';
 import io from 'socket.io-client';
 import { Toaster, toast } from 'sonner';
 import PremiumModal from './PremiumModal';
+import { useAccessStatus } from '@/Utils/useAccessStatus';
+import { isMessageForbidden } from '@/Utils/isForbiden';
 
 const ChatPage = () => {
   const { currentUser, loading } = useAuth();
+  const { premiumEndsAt, isPremium } = useAccessStatus()
   const { chatId } = useParams();
   const navigate = useNavigate();
   const [chat, setChat] = useState(null);
@@ -117,6 +120,11 @@ const ChatPage = () => {
       return;
     }
 
+    if (isMessageForbidden(newMessage, isPremium)) {
+      toast.error("Shaxsiy aloqa maʼlumotlari yuborish taqiqlangan");
+      return;
+    }  
+
     try {
       await axios.post(
         `${api}/chat/message`,
@@ -156,14 +164,6 @@ const ChatPage = () => {
     return senderId === currentUser?._id;
   };
 
-// Проверяем только твое условие
-const isMan = currentUser?.profile?.gender === 'Erkak';
-const isWoman = currentUser?.profile?.gender === 'Ayol';
-const isChatWithWoman = chat?.profile?.gender === 'Ayol';
-const isChatWithMan = chat?.profile?.gender === 'Erkak';
-const isPremium = currentUser?.isPremium || false;
-
-let canSendMessage = true;
 
   return (
     <div className="flex flex-col h-[100vh] bg-gray-50">
@@ -302,10 +302,6 @@ let canSendMessage = true;
 
           <Button
             onClick={() => {
-              if (!canSendMessage) {
-                toast.error("Sizga yozgan ayolga yozish uchun premium kerak.");
-                return;
-              }
               handleSendMessage();
             }}
             disabled={!newMessage.trim() || !isConnected}
