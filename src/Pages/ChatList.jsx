@@ -50,14 +50,6 @@ const ChatList = () => {
     chat._id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const formatChatId = (id) => {
-    return id.length > 8 ? id.substring(0, 8) + '...' : id;
-  };
-
-  const getInitials = (chatId) => {
-    return chatId.substring(0, 2).toUpperCase();
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);

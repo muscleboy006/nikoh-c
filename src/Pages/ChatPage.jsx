@@ -8,12 +8,14 @@ import api from '@/Utils/api';
 import { useAuth } from '@/AuthContext';
 import io from 'socket.io-client';
 import { Toaster, toast } from 'sonner';
+import PremiumModal from './PremiumModal';
 
 const ChatPage = () => {
   const { currentUser, loading } = useAuth();
   const { chatId } = useParams();
   const navigate = useNavigate();
   const [chat, setChat] = useState(null);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [socket, setSocket] = useState(null);
@@ -129,7 +131,8 @@ const ChatPage = () => {
     } catch (error) {
       console.error('Xabar yuborishda xato:', error);
       if (error.response?.data?.message) {
-        toast.error(error.response.data.message)
+        // toast.error(error.response.data.message)
+        setShowPremiumModal(true)
       }
     }
   };
@@ -165,6 +168,8 @@ let canSendMessage = true;
   return (
     <div className="flex flex-col h-[100vh] bg-gray-50">
       <Toaster richColors position="top-center" />
+      <PremiumModal open={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
+
       {/* Suhbat sarlavhasi */}
       <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm">
         <div className="flex items-center space-x-3">
@@ -213,9 +218,8 @@ let canSendMessage = true;
           {currentUser?.profile?.gender == "Erkak" ?
         <div className="sticky top-0 z-10 bg-blue-100 border border-blue-300 rounded-lg p-3 shadow-sm flex items-center space-x-2">
           <Pin className="h-4 w-4 text-blue-500 flex-shrink-0" />
-          <p className="text-xs text-gray-700">
-            Ushbu suhbatda 1 ta xabar limiti bor. Davom ettirish uchun premium oling.
-            <p className='text-red-700'>(saytdan g'araz maqsadlarda foydalanmang, barcha yozishmalar kuzatiladi!)</p>
+          <p className="text-xs text-red-700">
+            Saytdan g'araz maqsadlarda foydalanmang, barcha yozishmalar kuzatiladi!
           </p>
         </div>
         : <div className="sticky top-0 z-10 bg-blue-100 border border-blue-300 rounded-lg p-3 shadow-sm flex items-center space-x-2">
