@@ -412,27 +412,26 @@ const ProfilePage = () => {
           </>
         ) : (
           // 🔥 Версия для мужчин
-          <>
-            <div className="text-lg">
-              Siz <span className="font-bold text-green-600">{userProfile?.referrals?.length ?? 0}</span> do'stingizni taklif qildingiz.
-            </div>
+            <>
+              <div className="text-lg">
+                Siz <span className="font-bold text-green-600">{userProfile?.referrals?.length ?? 0}</span> do‘st taklif qildingiz.
+              </div>
 
-            <div className="mt-2 text-sm text-gray-500">
-              Agar 5 ta do'st taklif qilsangiz — 1 oylik premium a'zolik bepul bo'ladi.
-            </div>
-            <div className='text-sm'>
-              Referal havolani bot orqali olishingiz mumkun!
-            </div>
-            <div className="mt-4">
-              {(userProfile?.referrals?.length ?? 0) >= 5 ? (
-                <div className="text-green-600 font-semibold">🎉 Siz premium olishingiz mumkin!</div>
-              ) : (
-                <div className="text-blue-600">
-                  {5 - (userProfile?.referrals?.length ?? 0)} ta do'st qolgan.
-                </div>
-              )}
-            </div>
-          </>
+              <div className="mt-2 text-sm text-gray-500">
+                Har bir do‘st uchun 5 000 so‘m chegirma beriladi.
+              </div>
+
+              <div className="text-sm">
+                Referal havolani bot orqali olishingiz mumkin.
+              </div>
+
+              <div className="mt-4 text-sm text-gray-700">
+                Jami chegirma:{" "}
+                <span className="font-semibold text-green-600">
+                  {((userProfile?.referrals?.length ?? 0) * 5000).toLocaleString()} so‘m
+                </span>
+              </div>
+            </>
         )}
       </Card>
 
