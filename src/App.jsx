@@ -15,6 +15,7 @@ import Saved from './Pages/Saved';
 import ViewProfile from './Pages/ViewProfile';
 import ChatPage from './Pages/ChatPage';
 import Random from './Pages/Random';
+import Zaglushka from './Zaglushka';
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -76,21 +77,20 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/auth" element={
-            <LoginPage />
+            // <LoginPage />
+            <Zaglushka />
           } />
 
           <Route element={<ProtectedRoute />}>
-          {/* <Route element={<MainLayout />}> */}
-            <Route path="/dashboard" element={<Random />} />
-            {/* <Route path='/random' element={<Random />} />  */}
-            <Route path="/anketa/:id" element={<ViewProfile />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/chat/:chatId" element={<ChatPage />} />
-              <Route path="/saved" element={<Saved />} />
-              <Route path="/premium" element={<PremiumPage />} />
+            <Route path="/dashboard" element={<Zaglushka />} />
+            {/* <Route path="/dashboard" element={<Random />} /> */}
+            {/* <Route path="/anketa/:id" element={<ViewProfile />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/chat/:chatId" element={<ChatPage />} />
+            <Route path="/saved" element={<Saved />} />
+            <Route path="/premium" element={<PremiumPage />} /> */}
             </Route>
-          {/* </Route> */}
           {/* Catch all other routes and redirect */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
